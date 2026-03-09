@@ -27,8 +27,7 @@ func main() {
 	// go infra.LoadAWSConfig(&cfg, cfg.R2)
 	// go infra.ConnectPubSub(ctx, &cfg)
 
-	// Blocking DB connection (or just ensure connection pool)
-	infra.ConnectDB(ctx, &cfg)
+	go infra.ConnectDB(ctx, &cfg)
 
 	// Start your server in goroutine
 	go func() {

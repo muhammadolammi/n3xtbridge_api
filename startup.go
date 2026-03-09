@@ -16,10 +16,15 @@ func buildConfig() handlers.Config {
 	if port == "" {
 		log.Println("Empty PORT in env")
 	}
+	clientApiKey := os.Getenv("CLIENT_API_KEY")
+	if clientApiKey == "" {
+		log.Println("Empty CLIENT_API_KEY in env")
+	}
 
 	return handlers.Config{
-		DBURL: dburl,
-		Port:  port,
+		DBURL:        dburl,
+		Port:         port,
+		ClientApiKey: clientApiKey,
 	}
 
 }

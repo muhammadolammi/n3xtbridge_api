@@ -45,6 +45,9 @@ func server(apiConfig *handlers.Config) {
 	apiRoute.Get("/hello", handlers.HelloReady)
 	apiRoute.Get("/error", handlers.ErrorReady)
 
+	// invoice
+	apiRoute.Post("/invoice", handlers.CreateInvoiceHandler)
+
 	router.Mount("/api", apiRoute)
 	srv := &http.Server{
 		Addr:              ":" + apiConfig.Port,
