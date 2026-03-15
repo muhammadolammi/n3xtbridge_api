@@ -20,6 +20,10 @@ func buildConfig() handlers.Config {
 	if clientApiKey == "" {
 		log.Println("Empty CLIENT_API_KEY in env")
 	}
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Println("Empty JWT_SECRET in env")
+	}
 
 	return handlers.Config{
 		DBURL:        dburl,

@@ -45,8 +45,17 @@ func server(apiConfig *handlers.Config) {
 	apiRoute.Get("/hello", handlers.HelloReady)
 	apiRoute.Get("/error", handlers.ErrorReady)
 
-	// invoice
-	apiRoute.Post("/invoice", handlers.CreateInvoiceHandler)
+	// Auth routes (public, no auth required)
+	apiRoute.Post("/auth/signup", apiConfig.SignupHandler)
+	apiRoute.Post("/auth/signin", apiConfig.SigninHandler)
+
+	// Invoice routes (requires JWT auth + staff or admin role)
+	apiRoute.With(apiConfig.AuthMiddleware(), apiConfig.RequireRole("admin", "staff")).Post("/invoice", apiConfig.CreateInvoiceHandler)
+
+	// ORDER ROUTES
+	apiRoute.With(apiConfig.AuthMiddleware()).Post("/service_order", apiConfig.CreateServiceOrderHandler)
+	apiRoute.With(apiConfig.AuthMiddleware()).Get("/service_order", apiConfig.GetOrdersByUserHandler)
+	apiRoute.With(apiConfig.AuthMiddleware(), apiConfig.RequireRole("admin")).Get("/service_order", apiConfig.GetOrdersByUserHandler)
 
 	router.Mount("/api", apiRoute)
 	srv := &http.Server{

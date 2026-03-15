@@ -5,15 +5,66 @@
 package database
 
 import (
-	"time"
+	"database/sql"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
 
-type User struct {
+type Invoice struct {
+	ID            uuid.UUID
+	InvoiceNumber string
+	CustomerName  string
+	CustomerEmail string
+	CustomerPhone sql.NullString
+	Discount      sql.NullString
+	Total         string
+	Notes         sql.NullString
+	CreatedAt     sql.NullTime
+	UpdatedAt     sql.NullTime
+}
+
+type Item struct {
 	ID        uuid.UUID
-	Email     string
-	Role      string
-	Password  string
-	CreatedAt time.Time
+	InvoiceID uuid.NullUUID
+	Name      string
+	Quantity  int32
+	Price     string
+	CreatedAt sql.NullTime
+}
+
+type ServiceOrder struct {
+	ID               uuid.UUID
+	OrderNumber      string
+	Email            string
+	FullName         string
+	BusinessName     string
+	Phone            string
+	WhatsappPhone    sql.NullString
+	CompanySize      string
+	ReferralSource   string
+	ServiceType      string
+	ApplianceDetails pqtype.NullRawMessage
+	DeliveryAddress  string
+	TransportFee     string
+	ServiceFee       string
+	PromoApplied     sql.NullBool
+	Status           sql.NullString
+	UserID           uuid.NullUUID
+	Notes            sql.NullString
+	CreatedAt        sql.NullTime
+	UpdatedAt        sql.NullTime
+}
+
+type User struct {
+	ID           uuid.UUID
+	Email        string
+	PasswordHash string
+	FirstName    string
+	LastName     string
+	PhoneNumber  sql.NullString
+	Address      sql.NullString
+	Role         string
+	CreatedAt    sql.NullTime
+	UpdatedAt    sql.NullTime
 }

@@ -10,7 +10,7 @@ import (
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-	infra "github.com/muhammadolammi/n3xtbridge_api/internal"
+	"github.com/muhammadolammi/n3xtbridge_api/internal/infra"
 )
 
 func main() {
