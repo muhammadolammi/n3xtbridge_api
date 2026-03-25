@@ -10,8 +10,6 @@ import (
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-	goauth "github.com/muhammadolammi/goauth/pkg/auth"
-	"github.com/muhammadolammi/n3xtbridge_api/internal/auth"
 	"github.com/muhammadolammi/n3xtbridge_api/internal/infra"
 )
 
@@ -29,11 +27,8 @@ func main() {
 	// go infra.LoadAWSConfig(&cfg, cfg.R2)
 	// go infra.ConnectPubSub(ctx, &cfg)
 
-	infra.ConnectDB(ctx, &cfg)
+	go infra.ConnectDB(ctx, &cfg)
 
-	provider := auth.NewProvider(cfg.DB)
-	authService := goauth.NewAuthService(cfg.JwtSecret, "n3xtbridge", provider, os.Getenv("ENV") == "production")
-	cfg.AuthService = authService
 	// Start your server in goroutine
 	go func() {
 		server(&cfg)

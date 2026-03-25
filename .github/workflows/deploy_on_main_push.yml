@@ -69,3 +69,4 @@ jobs:
             DB_URL=${{ secrets.DB_URL }}
             JWT_KEY=${{ secrets.JWT_KEY }}
             CLIENT_API_KEY=${{ secrets.CLIENT_API_KEY }}
+            

@@ -4,8 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"log"
+	"os"
+
 	"time"
 
+	goauth "github.com/muhammadolammi/goauth/pkg/auth"
+
+	"github.com/muhammadolammi/n3xtbridge_api/internal/auth"
 	"github.com/muhammadolammi/n3xtbridge_api/internal/database"
 	"github.com/muhammadolammi/n3xtbridge_api/internal/handlers"
 )
@@ -46,6 +51,9 @@ func ConnectDB(ctx context.Context, cfg *handlers.Config) {
 		db.SetConnMaxLifetime(5 * time.Minute)
 
 		cfg.DB = database.New(db)
+		provider := auth.NewProvider(cfg.DB)
+		authService := goauth.NewAuthService(cfg.JwtSecret, "n3xtbridge", provider, os.Getenv("ENV") == "production")
+		cfg.AuthService = authService
 		log.Println("✅ Postgres connected")
 		return
 	}
