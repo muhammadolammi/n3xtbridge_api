@@ -11,7 +11,6 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.11.2
 	github.com/muhammadolammi/goauth v1.1.4
-	github.com/sqlc-dev/pqtype v0.3.0
 	golang.org/x/crypto v0.49.0
 )
 
@@ -24,5 +23,3 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 )
-
-replace github.com/muhammadolammi/goauth => ../../goauth

@@ -2,7 +2,7 @@
 INSERT INTO invoices (
     invoice_number, customer_name, customer_email, customer_phone, total, notes , items , discounts, user_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7,$8, $9
+    $1, $2, $3, $4, $5, $6, $7,$8,
 ) RETURNING *;
 
 
