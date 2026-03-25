@@ -1,0 +1,71 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main  
+
+env:
+  PROJECT_ID: 'n3xtbridge' 
+  REGION: 'us-east1'               
+  SERVICE: 'n3xtbridge-backend'          
+
+permissions:
+  contents: read
+  id-token: write 
+
+jobs:
+  build:
+    name: Build and push Docker images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+
+      - name: Build the server binary
+        run: |
+          chmod +x ./build.sh
+          ./build.sh
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Docker image
+        run: |
+          DEPLOY_VERSION=$(git rev-parse --short HEAD)
+          docker build . -t muhammadolammi/n3xtbridge-backend:latest -t muhammadolammi/n3xtbridge-backend:${DEPLOY_VERSION}
+          docker push muhammadolammi/n3xtbridge-backend --all-tags
+
+  deploy:
+    needs: build
+    name: Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider: '${{ secrets.WIF_PROVIDER }}'
+          service_account: '${{ secrets.WIF_SERVICE_ACCOUNT }}'
+
+      - name: 'Deploy to Cloud Run'
+        uses: 'google-github-actions/deploy-cloudrun@v2'
+        with:
+          service: '${{ env.SERVICE }}'
+          region: '${{ env.REGION }}'
+          project_id: '${{ env.PROJECT_ID }}'
+          image: 'index.docker.io/muhammadolammi/n3xtbridge-backend:latest'
+          env_vars: |
+            ENV=${{ secrets.ENV }}
+            DB_URL=${{ secrets.DB_URL }}
+            JWT_KEY=${{ secrets.JWT_KEY }}
+            CLIENT_API_KEY=${{ secrets.CLIENT_API_KEY }}

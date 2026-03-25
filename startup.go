@@ -28,7 +28,6 @@ func buildConfig() handlers.Config {
 	if jwtSecret == "" {
 		log.Println("Empty JWT_SECRET in env")
 	}
-
 	return handlers.Config{
 		DBURL:                      dburl,
 		Port:                       port,
