@@ -4,18 +4,20 @@ import (
 	"fmt"
 	"strconv"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 func CalculateTotal(input InvoiceInput) float64 {
 
 	var itemsTotal float64
+	var discountsTotal float64
 
 	for _, item := range input.Items {
 		itemsTotal += float64(item.Quantity) * item.Price
 	}
-	total := itemsTotal - input.Discount
+	for _, discount := range input.Discounts {
+		discountsTotal += discount.Amount
+	}
+	total := itemsTotal - discountsTotal
 
 	return total
 }
@@ -23,13 +25,12 @@ func CalculateTotal(input InvoiceInput) float64 {
 func CreateInvoice(input InvoiceInput) Invoice {
 	total := CalculateTotal(input)
 	return Invoice{
-		ID:            uuid.NewString(),
 		InvoiceNumber: GenerateInvoiceNumber(),
 		CustomerName:  input.CustomerName,
 		CustomerEmail: input.CustomerEmail,
 		CustomerPhone: input.CustomerPhone,
 		Items:         input.Items,
-		Discount:      input.Discount,
+		Discounts:     input.Discounts,
 		Total:         total,
 		CreatedAt:     time.Now(),
 	}

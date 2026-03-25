@@ -15,7 +15,7 @@ func server(apiConfig *handlers.Config) {
 
 	// Define CORS options
 	corsOptions := cors.Options{
-		AllowedOrigins: []string{"http://localhost:3000", "http://localhost:8081", "https://gojobmatch.com", "https://jobmatch-backend-755404739186.us-east1.run.app"}, // You can customize this based on your needs
+		AllowedOrigins: []string{"http://localhost:3000", "http://localhost:5173"}, // You can customize this based on your needs
 
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{
@@ -47,15 +47,16 @@ func server(apiConfig *handlers.Config) {
 
 	// Auth routes (public, no auth required)
 	apiRoute.Post("/auth/signup", apiConfig.SignupHandler)
-	apiRoute.Post("/auth/signin", apiConfig.SigninHandler)
+	apiRoute.Post("/auth/signin", apiConfig.AuthService.LoginHandler)
+	apiRoute.With(apiConfig.AuthService.RequireAuth).Post("/auth/signout", apiConfig.AuthService.LogoutHandler)
+	apiRoute.Post("/auth/refresh", apiConfig.AuthService.RefreshHandler)
+	apiRoute.With(apiConfig.AuthService.RequireAuth).Get("/auth/user", apiConfig.GetUserHandler)
 
 	// Invoice routes (requires JWT auth + staff or admin role)
-	apiRoute.With(apiConfig.AuthMiddleware(), apiConfig.RequireRole("admin", "staff")).Post("/invoice", apiConfig.CreateInvoiceHandler)
-
-	// ORDER ROUTES
-	apiRoute.With(apiConfig.AuthMiddleware()).Post("/service_order", apiConfig.CreateServiceOrderHandler)
-	apiRoute.With(apiConfig.AuthMiddleware()).Get("/service_order", apiConfig.GetOrdersByUserHandler)
-	apiRoute.With(apiConfig.AuthMiddleware(), apiConfig.RequireRole("admin")).Get("/service_order", apiConfig.GetOrdersByUserHandler)
+	apiRoute.With(apiConfig.AuthService.RequireAuth, apiConfig.RequireRole("admin", "staff")).Post("/invoices", apiConfig.CreateInvoiceHandler)
+	apiRoute.With(apiConfig.AuthService.RequireAuth, apiConfig.RequireRole("admin", "staff")).Get("/invoices", apiConfig.GetInvoicesHandler)
+	apiRoute.With(apiConfig.AuthService.RequireAuth, apiConfig.RequireRole("admin", "staff")).Get("/invoices/{id}", apiConfig.GetInvoiceHandler)
+	apiRoute.With(apiConfig.AuthService.RequireAuth, apiConfig.RequireRole("admin")).Get("/admin/invoices", apiConfig.AdminListAllInvoicesHandler)
 
 	router.Mount("/api", apiRoute)
 	srv := &http.Server{

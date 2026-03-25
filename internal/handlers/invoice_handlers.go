@@ -5,12 +5,15 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"strconv"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/muhammadolammi/n3xtbridge_api/internal/database"
 	"github.com/muhammadolammi/n3xtbridge_api/internal/helpers"
 	invoicepackage "github.com/muhammadolammi/n3xtbridge_api/internal/invoice"
-	"github.com/muhammadolammi/n3xtbridge_api/internal/database"
 )
 
 func (cfg *Config) CreateInvoiceHandler(w http.ResponseWriter, r *http.Request) {
@@ -21,55 +24,137 @@ func (cfg *Config) CreateInvoiceHandler(w http.ResponseWriter, r *http.Request) 
 		helpers.RespondWithError(w, http.StatusBadRequest, "invalid request, err: "+err.Error())
 		return
 	}
+	user, httpstatus, err := cfg.getUserFromReq(r)
+	if err != nil {
+		helpers.RespondWithError(w, httpstatus, err.Error())
+
+	}
 
 	invoice := invoicepackage.CreateInvoice(input)
 
-	// Convert to DB params
-	discountStr := ""
-	if input.Discount > 0 {
-		discountStr = fmt.Sprintf("%.2f", input.Discount)
-	}
 	totalStr := fmt.Sprintf("%.2f", invoice.Total)
+	jsonBItems, err := json.Marshal(input.Items)
+	if err != nil {
+		helpers.RespondWithError(w, http.StatusBadRequest, "error converting items to jsonb")
+		return
+	}
+	jsonBDiscounts, err := json.Marshal(input.Discounts)
+	if err != nil {
+		helpers.RespondWithError(w, http.StatusBadRequest, "error converting discounts to jsonb")
+		return
+	}
+	// fmt.Printf("Received Discounts: %+v\n", input.Discounts)
+	// fmt.Printf("Marshalled Discounts: %+v\n", string(jsonBDiscounts))
+
+	// helpers.RespondWithError(w, http.StatusInternalServerError, "")
+	// return
 
 	dbParams := database.CreateInvoiceParams{
 		InvoiceNumber: invoice.InvoiceNumber,
+		UserID:        user.ID,
 		CustomerName:  invoice.CustomerName,
 		CustomerEmail: invoice.CustomerEmail,
 		CustomerPhone: sql.NullString{String: input.CustomerPhone, Valid: input.CustomerPhone != ""},
-		Discount:      sql.NullString{String: discountStr, Valid: input.Discount > 0},
 		Total:         totalStr,
-		Notes:         sql.NullString{String: input.Notes, Valid: input.Notes != ""},
+		Notes:         input.Notes,
+		Discounts:     jsonBDiscounts,
+		Items:         jsonBItems,
 	}
 
 	// Save invoice to database
 	ctx := context.Background()
 	dbInvoice, err := cfg.DB.CreateInvoice(ctx, dbParams)
 	if err != nil {
-		helpers.RespondWithError(w, http.StatusInternalServerError, "failed to save invoice: "+err.Error())
+		log.Println("failed to save invoice: " + err.Error())
+		helpers.RespondWithError(w, http.StatusInternalServerError, "failed to save invoice: ")
 		return
 	}
 
-	// Save items to database
-	for _, item := range input.Items {
-		itemParams := database.CreateItemParams{
-			InvoiceID: uuid.NullUUID{UUID: dbInvoice.ID, Valid: true},
-			Name:      item.Name,
-			Quantity:  int32(item.Quantity),
-			Price:     fmt.Sprintf("%.2f", item.Price),
-		}
-		_, err := cfg.DB.CreateItem(ctx, itemParams)
-		if err != nil {
-			helpers.RespondWithError(w, http.StatusInternalServerError, "failed to save item: "+err.Error())
+	invoice.ID = dbInvoice.ID
+	helpers.RespondWithJson(w, http.StatusCreated, invoice)
+}
+
+func (cfg *Config) GetInvoiceHandler(w http.ResponseWriter, r *http.Request) {
+	invoiceId := chi.URLParam(r, "id")
+	if invoiceId == "" {
+		helpers.RespondWithError(w, http.StatusBadRequest, "")
+		return
+	}
+
+	parsedId, err := uuid.Parse(invoiceId)
+	if err != nil {
+		helpers.RespondWithError(w, http.StatusBadRequest, "error parsing id")
+		return
+	}
+	invoice, err := cfg.DB.GetInvoice(r.Context(), parsedId)
+	if err != nil {
+		log.Println("DB ERROR error getting invoice: " + err.Error())
+		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting invoice")
+		return
+	}
+	// authorization
+	user, httpstatus, err := cfg.getUserFromReq(r)
+	if err != nil {
+		helpers.RespondWithError(w, httpstatus, err.Error())
+
+	}
+	if user.Role != "admin" {
+		//  staff must own the invoice
+		if user.ID != invoice.UserID {
+			helpers.RespondWithError(w, http.StatusUnauthorized, "user not authorize")
 			return
 		}
 	}
+	log.Println(invoice)
+	log.Println(dbInvoicetoInvoice(invoice))
 
-	// Generate PDF with DB invoice data (including ID)
-	pdf, err := invoicepackage.GeneratePDF(invoice)
+	helpers.RespondWithJson(w, http.StatusOK, dbInvoicetoInvoice(invoice))
+}
+
+func (cfg *Config) GetInvoicesHandler(w http.ResponseWriter, r *http.Request) {
+	user, httpstatus, err := cfg.getUserFromReq(r)
 	if err != nil {
-		helpers.RespondWithError(w, http.StatusInternalServerError, "failed to generate pdf")
+		helpers.RespondWithError(w, httpstatus, err.Error())
+
+	}
+
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 10 // Default
+	}
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil || offset < 0 {
+		offset = 0 // Default
+	}
+
+	invoices, err := cfg.DB.GetUserInvoices(r.Context(), database.GetUserInvoicesParams{
+		Limit:  int32(limit),
+		Offset: int32(offset),
+		UserID: user.ID,
+	})
+	if err != nil {
+		log.Println("DB ERROR error getting invoice: " + err.Error())
+		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting invoice")
 		return
 	}
 
-	helpers.RespondWithPdf(w, http.StatusOK, pdf, invoice.InvoiceNumber)
+	helpers.RespondWithJson(w, http.StatusOK, dbInvoicestoInvoices(invoices))
+}
+
+func (cfg *Config) AdminListAllInvoicesHandler(w http.ResponseWriter, r *http.Request) {
+
+	invoices, err := cfg.DB.ListInvoices(r.Context(), database.ListInvoicesParams{
+		Offset: 10,
+		Limit:  10,
+	})
+	if err != nil {
+		log.Println("DB ERROR error getting invoice: " + err.Error())
+		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting invoice")
+		return
+	}
+
+	helpers.RespondWithJson(w, http.StatusOK, dbInvoicestoInvoices(invoices))
 }

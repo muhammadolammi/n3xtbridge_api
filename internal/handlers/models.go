@@ -4,18 +4,20 @@ import (
 	"database/sql"
 
 	"github.com/google/uuid"
+	goauth "github.com/muhammadolammi/goauth/pkg/auth"
 	"github.com/muhammadolammi/n3xtbridge_api/internal/database"
 )
 
 type Config struct {
-	DBURL        string
-	DB           *database.Queries
-	DBConn       *sql.DB
-	ClientApiKey string
-	Port         string
-	JwtSecret    string
-	RateLimit    int
-
+	DBURL                      string
+	DB                         *database.Queries
+	DBConn                     *sql.DB
+	ClientApiKey               string
+	Port                       string
+	JwtSecret                  string
+	RateLimit                  int
+	RefreshTokenEXpirationTime int //in minute
+	AcessTokenEXpirationTime   int //in minute
 	// Email configuration (Zoho SMTP)
 	SMTPServer   string
 	SMTPPort     int
@@ -23,6 +25,7 @@ type Config struct {
 	SMTPPassword string
 	FromEmail    string
 	FromName     string
+	AuthService  *goauth.AuthService
 }
 
 type User struct {
@@ -31,7 +34,9 @@ type User struct {
 	FirstName   string         `json:"first_name"`
 	LastName    string         `json:"last_name"`
 	PhoneNumber sql.NullString `json:"phone_number"`
-	Address     sql.NullString `json:"address"`
+	Address     string         `json:"address"`
+	Country     string         `json:"country"`
+	State       string         `json:"state"`
 	Role        string         `json:"role"`
 	CreatedAt   sql.NullTime   `json:"created_at"`
 }

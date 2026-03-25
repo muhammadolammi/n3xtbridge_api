@@ -6,9 +6,10 @@ package database
 
 import (
 	"database/sql"
+	"encoding/json"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/sqlc-dev/pqtype"
 )
 
 type Invoice struct {
@@ -17,43 +18,23 @@ type Invoice struct {
 	CustomerName  string
 	CustomerEmail string
 	CustomerPhone sql.NullString
-	Discount      sql.NullString
 	Total         string
-	Notes         sql.NullString
-	CreatedAt     sql.NullTime
-	UpdatedAt     sql.NullTime
+	Notes         string
+	Items         json.RawMessage
+	Discounts     json.RawMessage
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	UserID        uuid.UUID
 }
 
-type Item struct {
-	ID        uuid.UUID
-	InvoiceID uuid.NullUUID
-	Name      string
-	Quantity  int32
-	Price     string
-	CreatedAt sql.NullTime
-}
-
-type ServiceOrder struct {
-	ID               uuid.UUID
-	OrderNumber      string
-	Email            string
-	FullName         string
-	BusinessName     string
-	Phone            string
-	WhatsappPhone    sql.NullString
-	CompanySize      string
-	ReferralSource   string
-	ServiceType      string
-	ApplianceDetails pqtype.NullRawMessage
-	DeliveryAddress  string
-	TransportFee     string
-	ServiceFee       string
-	PromoApplied     sql.NullBool
-	Status           sql.NullString
-	UserID           uuid.NullUUID
-	Notes            sql.NullString
-	CreatedAt        sql.NullTime
-	UpdatedAt        sql.NullTime
+type RefreshToken struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	Token      string
+	Revoked    bool
+	ReplacedBy uuid.NullUUID
+	ExpiresAt  time.Time
+	CreatedAt  time.Time
 }
 
 type User struct {
@@ -63,7 +44,9 @@ type User struct {
 	FirstName    string
 	LastName     string
 	PhoneNumber  sql.NullString
-	Address      sql.NullString
+	Address      string
+	Country      string
+	State        string
 	Role         string
 	CreatedAt    sql.NullTime
 	UpdatedAt    sql.NullTime

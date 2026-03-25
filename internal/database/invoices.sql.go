@@ -8,16 +8,17 @@ package database
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 
 	"github.com/google/uuid"
 )
 
 const createInvoice = `-- name: CreateInvoice :one
 INSERT INTO invoices (
-    invoice_number, customer_name, customer_email, customer_phone, discount, total, notes
+    invoice_number, customer_name, customer_email, customer_phone, total, notes , items , discounts, user_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
-) RETURNING id, invoice_number, customer_name, customer_email, customer_phone, discount, total, notes, created_at, updated_at
+    $1, $2, $3, $4, $5, $6, $7,$8, $9
+) RETURNING id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id
 `
 
 type CreateInvoiceParams struct {
@@ -25,9 +26,11 @@ type CreateInvoiceParams struct {
 	CustomerName  string
 	CustomerEmail string
 	CustomerPhone sql.NullString
-	Discount      sql.NullString
 	Total         string
-	Notes         sql.NullString
+	Notes         string
+	Items         json.RawMessage
+	Discounts     json.RawMessage
+	UserID        uuid.UUID
 }
 
 func (q *Queries) CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (Invoice, error) {
@@ -36,9 +39,11 @@ func (q *Queries) CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (I
 		arg.CustomerName,
 		arg.CustomerEmail,
 		arg.CustomerPhone,
-		arg.Discount,
 		arg.Total,
 		arg.Notes,
+		arg.Items,
+		arg.Discounts,
+		arg.UserID,
 	)
 	var i Invoice
 	err := row.Scan(
@@ -47,45 +52,13 @@ func (q *Queries) CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (I
 		&i.CustomerName,
 		&i.CustomerEmail,
 		&i.CustomerPhone,
-		&i.Discount,
 		&i.Total,
 		&i.Notes,
+		&i.Items,
+		&i.Discounts,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const createItem = `-- name: CreateItem :one
-INSERT INTO items (
-    invoice_id, name, quantity, price
-) VALUES (
-    $1, $2, $3, $4
-) RETURNING id, invoice_id, name, quantity, price, created_at
-`
-
-type CreateItemParams struct {
-	InvoiceID uuid.NullUUID
-	Name      string
-	Quantity  int32
-	Price     string
-}
-
-func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (Item, error) {
-	row := q.db.QueryRowContext(ctx, createItem,
-		arg.InvoiceID,
-		arg.Name,
-		arg.Quantity,
-		arg.Price,
-	)
-	var i Item
-	err := row.Scan(
-		&i.ID,
-		&i.InvoiceID,
-		&i.Name,
-		&i.Quantity,
-		&i.Price,
-		&i.CreatedAt,
+		&i.UserID,
 	)
 	return i, err
 }
@@ -99,12 +72,12 @@ func (q *Queries) DeleteInvoice(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
-const getInvoiceByID = `-- name: GetInvoiceByID :one
-SELECT id, invoice_number, customer_name, customer_email, customer_phone, discount, total, notes, created_at, updated_at FROM invoices WHERE id = $1
+const getInvoice = `-- name: GetInvoice :one
+SELECT id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id FROM invoices WHERE id = $1
 `
 
-func (q *Queries) GetInvoiceByID(ctx context.Context, id uuid.UUID) (Invoice, error) {
-	row := q.db.QueryRowContext(ctx, getInvoiceByID, id)
+func (q *Queries) GetInvoice(ctx context.Context, id uuid.UUID) (Invoice, error) {
+	row := q.db.QueryRowContext(ctx, getInvoice, id)
 	var i Invoice
 	err := row.Scan(
 		&i.ID,
@@ -112,17 +85,19 @@ func (q *Queries) GetInvoiceByID(ctx context.Context, id uuid.UUID) (Invoice, er
 		&i.CustomerName,
 		&i.CustomerEmail,
 		&i.CustomerPhone,
-		&i.Discount,
 		&i.Total,
 		&i.Notes,
+		&i.Items,
+		&i.Discounts,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UserID,
 	)
 	return i, err
 }
 
 const getInvoiceByNumber = `-- name: GetInvoiceByNumber :one
-SELECT id, invoice_number, customer_name, customer_email, customer_phone, discount, total, notes, created_at, updated_at FROM invoices WHERE invoice_number = $1
+SELECT id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id FROM invoices WHERE invoice_number = $1
 `
 
 func (q *Queries) GetInvoiceByNumber(ctx context.Context, invoiceNumber string) (Invoice, error) {
@@ -134,35 +109,52 @@ func (q *Queries) GetInvoiceByNumber(ctx context.Context, invoiceNumber string) 
 		&i.CustomerName,
 		&i.CustomerEmail,
 		&i.CustomerPhone,
-		&i.Discount,
 		&i.Total,
 		&i.Notes,
+		&i.Items,
+		&i.Discounts,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UserID,
 	)
 	return i, err
 }
 
-const getItemsByInvoiceID = `-- name: GetItemsByInvoiceID :many
-SELECT id, invoice_id, name, quantity, price, created_at FROM items WHERE invoice_id = $1
+const getUserInvoices = `-- name: GetUserInvoices :many
+SELECT id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id FROM invoices WHERE user_id = $1
+ORDER BY created_at DESC 
+LIMIT $2
+OFFSET $3
 `
 
-func (q *Queries) GetItemsByInvoiceID(ctx context.Context, invoiceID uuid.NullUUID) ([]Item, error) {
-	rows, err := q.db.QueryContext(ctx, getItemsByInvoiceID, invoiceID)
+type GetUserInvoicesParams struct {
+	UserID uuid.UUID
+	Limit  int32
+	Offset int32
+}
+
+func (q *Queries) GetUserInvoices(ctx context.Context, arg GetUserInvoicesParams) ([]Invoice, error) {
+	rows, err := q.db.QueryContext(ctx, getUserInvoices, arg.UserID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Item
+	var items []Invoice
 	for rows.Next() {
-		var i Item
+		var i Invoice
 		if err := rows.Scan(
 			&i.ID,
-			&i.InvoiceID,
-			&i.Name,
-			&i.Quantity,
-			&i.Price,
+			&i.InvoiceNumber,
+			&i.CustomerName,
+			&i.CustomerEmail,
+			&i.CustomerPhone,
+			&i.Total,
+			&i.Notes,
+			&i.Items,
+			&i.Discounts,
 			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}
@@ -178,7 +170,7 @@ func (q *Queries) GetItemsByInvoiceID(ctx context.Context, invoiceID uuid.NullUU
 }
 
 const listInvoices = `-- name: ListInvoices :many
-SELECT id, invoice_number, customer_name, customer_email, customer_phone, discount, total, notes, created_at, updated_at FROM invoices ORDER BY created_at DESC LIMIT $1 OFFSET $2
+SELECT id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id FROM invoices ORDER BY created_at DESC LIMIT $1 OFFSET $2
 `
 
 type ListInvoicesParams struct {
@@ -201,11 +193,13 @@ func (q *Queries) ListInvoices(ctx context.Context, arg ListInvoicesParams) ([]I
 			&i.CustomerName,
 			&i.CustomerEmail,
 			&i.CustomerPhone,
-			&i.Discount,
 			&i.Total,
 			&i.Notes,
+			&i.Items,
+			&i.Discounts,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}
@@ -225,11 +219,12 @@ UPDATE invoices SET
     customer_name = $2,
     customer_email = $3,
     customer_phone = $4,
-    discount = $5,
-    total = $6,
-    notes = $7,
+    total = $5,
+    notes = $6,
+    items =$7,
+    discounts=$8,
     updated_at = NOW()
-WHERE id = $1 RETURNING id, invoice_number, customer_name, customer_email, customer_phone, discount, total, notes, created_at, updated_at
+WHERE id = $1 RETURNING id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id
 `
 
 type UpdateInvoiceParams struct {
@@ -237,9 +232,10 @@ type UpdateInvoiceParams struct {
 	CustomerName  string
 	CustomerEmail string
 	CustomerPhone sql.NullString
-	Discount      sql.NullString
 	Total         string
-	Notes         sql.NullString
+	Notes         string
+	Items         json.RawMessage
+	Discounts     json.RawMessage
 }
 
 func (q *Queries) UpdateInvoice(ctx context.Context, arg UpdateInvoiceParams) (Invoice, error) {
@@ -248,9 +244,10 @@ func (q *Queries) UpdateInvoice(ctx context.Context, arg UpdateInvoiceParams) (I
 		arg.CustomerName,
 		arg.CustomerEmail,
 		arg.CustomerPhone,
-		arg.Discount,
 		arg.Total,
 		arg.Notes,
+		arg.Items,
+		arg.Discounts,
 	)
 	var i Invoice
 	err := row.Scan(
@@ -259,11 +256,13 @@ func (q *Queries) UpdateInvoice(ctx context.Context, arg UpdateInvoiceParams) (I
 		&i.CustomerName,
 		&i.CustomerEmail,
 		&i.CustomerPhone,
-		&i.Discount,
 		&i.Total,
 		&i.Notes,
+		&i.Items,
+		&i.Discounts,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UserID,
 	)
 	return i, err
 }

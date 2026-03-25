@@ -14,10 +14,10 @@ import (
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
-    email, password_hash, first_name, last_name, phone_number, address, role
+    email, password_hash, first_name, last_name, phone_number, address, role, country, state
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
-) RETURNING id, email, password_hash, first_name, last_name, phone_number, address, role, created_at, updated_at
+    $1, $2, $3, $4, $5, $6, $7,$8,$9
+) RETURNING id, email, password_hash, first_name, last_name, phone_number, address, country, state, role, created_at, updated_at
 `
 
 type CreateUserParams struct {
@@ -26,8 +26,10 @@ type CreateUserParams struct {
 	FirstName    string
 	LastName     string
 	PhoneNumber  sql.NullString
-	Address      sql.NullString
+	Address      string
 	Role         string
+	Country      string
+	State        string
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -39,6 +41,8 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.PhoneNumber,
 		arg.Address,
 		arg.Role,
+		arg.Country,
+		arg.State,
 	)
 	var i User
 	err := row.Scan(
@@ -49,6 +53,8 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.LastName,
 		&i.PhoneNumber,
 		&i.Address,
+		&i.Country,
+		&i.State,
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -57,7 +63,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, first_name, last_name, phone_number, address, role, created_at, updated_at FROM users WHERE email = $1
+SELECT id, email, password_hash, first_name, last_name, phone_number, address, country, state, role, created_at, updated_at FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -71,6 +77,8 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.LastName,
 		&i.PhoneNumber,
 		&i.Address,
+		&i.Country,
+		&i.State,
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -79,7 +87,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, first_name, last_name, phone_number, address, role, created_at, updated_at FROM users WHERE id = $1
+SELECT id, email, password_hash, first_name, last_name, phone_number, address, country, state, role, created_at, updated_at FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
@@ -93,6 +101,8 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.LastName,
 		&i.PhoneNumber,
 		&i.Address,
+		&i.Country,
+		&i.State,
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -100,11 +110,28 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 	return i, err
 }
 
+const updatePassword = `-- name: UpdatePassword :exec
+UPDATE users
+SET 
+  password_hash = $1
+WHERE email = $2
+`
+
+type UpdatePasswordParams struct {
+	PasswordHash string
+	Email        string
+}
+
+func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error {
+	_, err := q.db.ExecContext(ctx, updatePassword, arg.PasswordHash, arg.Email)
+	return err
+}
+
 const updateUserRole = `-- name: UpdateUserRole :one
 UPDATE users SET
     role = $2,
     updated_at = NOW()
-WHERE id = $1 RETURNING id, email, password_hash, first_name, last_name, phone_number, address, role, created_at, updated_at
+WHERE id = $1 RETURNING id, email, password_hash, first_name, last_name, phone_number, address, country, state, role, created_at, updated_at
 `
 
 type UpdateUserRoleParams struct {
@@ -123,9 +150,26 @@ func (q *Queries) UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) 
 		&i.LastName,
 		&i.PhoneNumber,
 		&i.Address,
+		&i.Country,
+		&i.State,
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const userExists = `-- name: UserExists :one
+SELECT EXISTS (
+    SELECT 1
+    FROM users
+    WHERE email = $1
+)
+`
+
+func (q *Queries) UserExists(ctx context.Context, email string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, userExists, email)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }

@@ -8,6 +8,10 @@ import (
 )
 
 func buildConfig() handlers.Config {
+	envMode := os.Getenv("ENV")
+	if envMode == "" {
+		log.Fatal("cant start up with empty ENV, security risk")
+	}
 	dburl := os.Getenv("DB_URL")
 	if dburl == "" {
 		log.Println("Empty DB_URL in env")
@@ -26,9 +30,11 @@ func buildConfig() handlers.Config {
 	}
 
 	return handlers.Config{
-		DBURL:        dburl,
-		Port:         port,
-		ClientApiKey: clientApiKey,
+		DBURL:                      dburl,
+		Port:                       port,
+		ClientApiKey:               clientApiKey,
+		RefreshTokenEXpirationTime: 60 * 24 * 7, //7 days
+		AcessTokenEXpirationTime:   60 * 24,     //a day
 	}
 
 }
