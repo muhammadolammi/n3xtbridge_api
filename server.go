@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -15,7 +16,9 @@ func server(apiConfig *handlers.Config) {
 
 	// Define CORS options
 	corsOptions := cors.Options{
-		AllowedOrigins: []string{"http://localhost:3000", "http://localhost:5173"}, // You can customize this based on your needs
+		AllowedOrigins: []string{
+			"http://localhost:3000", "http://localhost:5173", "https://n3xtbridge.com", // Your Firebase URL
+		}, // You can customize this based on your needs
 
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{
@@ -59,12 +62,19 @@ func server(apiConfig *handlers.Config) {
 	apiRoute.With(apiConfig.AuthService.RequireAuth, apiConfig.RequireRole("admin")).Get("/admin/invoices", apiConfig.AdminListAllInvoicesHandler)
 
 	router.Mount("/api", apiRoute)
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080" // Fallback for local development
+	}
+
+	addr := ":" + port
 	srv := &http.Server{
-		Addr:              ":" + apiConfig.Port,
+		Addr:              addr,
 		Handler:           router,
 		ReadHeaderTimeout: time.Minute,
 	}
 
-	log.Printf("Serving on port: %s\n", apiConfig.Port)
+	log.Printf("Serving on port: %s\n", port)
 	log.Fatal(srv.ListenAndServe())
 }

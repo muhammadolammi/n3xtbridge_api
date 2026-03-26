@@ -27,7 +27,7 @@ func main() {
 	// go infra.LoadAWSConfig(&cfg, cfg.R2)
 	// go infra.ConnectPubSub(ctx, &cfg)
 
-	go infra.ConnectDB(ctx, &cfg)
+	infra.ConnectDB(ctx, &cfg)
 
 	// Start your server in goroutine
 	go func() {

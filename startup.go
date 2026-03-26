@@ -16,10 +16,7 @@ func buildConfig() handlers.Config {
 	if dburl == "" {
 		log.Println("Empty DB_URL in env")
 	}
-	port := os.Getenv("PORT")
-	if port == "" {
-		log.Println("Empty PORT in env")
-	}
+
 	clientApiKey := os.Getenv("CLIENT_API_KEY")
 	if clientApiKey == "" {
 		log.Println("Empty CLIENT_API_KEY in env")
@@ -30,7 +27,6 @@ func buildConfig() handlers.Config {
 	}
 	return handlers.Config{
 		DBURL:                      dburl,
-		Port:                       port,
 		ClientApiKey:               clientApiKey,
 		RefreshTokenEXpirationTime: 60 * 24 * 7, //7 days
 		AcessTokenEXpirationTime:   60 * 24,     //a day

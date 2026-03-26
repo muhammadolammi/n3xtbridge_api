@@ -13,7 +13,6 @@ type Config struct {
 	DB                         *database.Queries
 	DBConn                     *sql.DB
 	ClientApiKey               string
-	Port                       string
 	JwtSecret                  string
 	RateLimit                  int
 	RefreshTokenEXpirationTime int //in minute

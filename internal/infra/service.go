@@ -53,6 +53,14 @@ func ConnectDB(ctx context.Context, cfg *handlers.Config) {
 		cfg.DB = database.New(db)
 		provider := auth.NewProvider(cfg.DB)
 		authService := goauth.NewAuthService(cfg.JwtSecret, "n3xtbridge", provider, os.Getenv("ENV") == "production")
+		if authService == nil {
+			log.Println("✅ nil auth")
+
+		}
+		if provider == nil {
+			log.Println("✅ nil auth")
+
+		}
 		cfg.AuthService = authService
 		log.Println("✅ Postgres connected")
 		return
