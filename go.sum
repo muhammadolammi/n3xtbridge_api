@@ -26,8 +26,8 @@ github.com/ledongthuc/pdf v0.0.0-20220302134840-0c2507a12d80 h1:6Yzfa6GP0rIo/kUL
 github.com/ledongthuc/pdf v0.0.0-20220302134840-0c2507a12d80/go.mod h1:imJHygn/1yfhB7XSJJKlFZKl/J+dCPAknuiaGOshXAs=
 github.com/lib/pq v1.11.2 h1:x6gxUeu39V0BHZiugWe8LXZYZ+Utk7hSJGThs8sdzfs=
 github.com/lib/pq v1.11.2/go.mod h1:/p+8NSbOcwzAEI7wiMXFlgydTwcgTr3OSKMsD2BitpA=
-github.com/muhammadolammi/goauth v1.1.4 h1:xhbyvFnm8KIBV6Qn2pjJgSBxfmzIugcKalZS041WKYw=
-github.com/muhammadolammi/goauth v1.1.4/go.mod h1:bag26/0muUPj7rKg/uk36gMJ17JF501xblZSGannD5I=
+github.com/muhammadolammi/goauth v1.1.5 h1:zxiSrWKh2Xkkh6tFMpDEsDuOU18zViNNwUV+TBQS9qk=
+github.com/muhammadolammi/goauth v1.1.5/go.mod h1:bag26/0muUPj7rKg/uk36gMJ17JF501xblZSGannD5I=
 github.com/orisano/pixelmatch v0.0.0-20220722002657-fb0b55479cde h1:x0TT0RDC7UhAVbbWWBzr41ElhJx5tXPWkIHA2HWPRuw=
 github.com/orisano/pixelmatch v0.0.0-20220722002657-fb0b55479cde/go.mod h1:nZgzbfBr3hhjoZnS66nKrHmduYNpc34ny7RK4z5/HM0=
 golang.org/x/crypto v0.49.0 h1:+Ng2ULVvLHnJ/ZFEq4KdcDd/cfjrrjjNSXNzxg0Y4U4=
