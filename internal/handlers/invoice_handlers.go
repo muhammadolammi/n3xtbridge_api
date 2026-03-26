@@ -105,8 +105,6 @@ func (cfg *Config) GetInvoiceHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	log.Println(invoice)
-	log.Println(dbInvoicetoInvoice(invoice))
 
 	helpers.RespondWithJson(w, http.StatusOK, dbInvoicetoInvoice(invoice))
 }
