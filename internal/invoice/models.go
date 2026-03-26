@@ -37,6 +37,7 @@ type Invoice struct {
 	Discounts     []Discount `json:"discounts"`
 	Total         float64    `json:"total"`
 	Notes         string     `json:"notes"`
+	Status        string     `json:"status"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
 }

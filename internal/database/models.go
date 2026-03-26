@@ -6,11 +6,102 @@ package database
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+type QuoteRequestStatus string
+
+const (
+	QuoteRequestStatusPending   QuoteRequestStatus = "pending"
+	QuoteRequestStatusReviewing QuoteRequestStatus = "reviewing"
+	QuoteRequestStatusQuoted    QuoteRequestStatus = "quoted"
+	QuoteRequestStatusRejected  QuoteRequestStatus = "rejected"
+)
+
+func (e *QuoteRequestStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = QuoteRequestStatus(s)
+	case string:
+		*e = QuoteRequestStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for QuoteRequestStatus: %T", src)
+	}
+	return nil
+}
+
+type NullQuoteRequestStatus struct {
+	QuoteRequestStatus QuoteRequestStatus
+	Valid              bool // Valid is true if QuoteRequestStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullQuoteRequestStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.QuoteRequestStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.QuoteRequestStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullQuoteRequestStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.QuoteRequestStatus), nil
+}
+
+type QuoteStatus string
+
+const (
+	QuoteStatusDraft    QuoteStatus = "draft"
+	QuoteStatusSent     QuoteStatus = "sent"
+	QuoteStatusAccepted QuoteStatus = "accepted"
+	QuoteStatusDeclined QuoteStatus = "declined"
+	QuoteStatusExpired  QuoteStatus = "expired"
+)
+
+func (e *QuoteStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = QuoteStatus(s)
+	case string:
+		*e = QuoteStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for QuoteStatus: %T", src)
+	}
+	return nil
+}
+
+type NullQuoteStatus struct {
+	QuoteStatus QuoteStatus
+	Valid       bool // Valid is true if QuoteStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullQuoteStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.QuoteStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.QuoteStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullQuoteStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.QuoteStatus), nil
+}
 
 type Invoice struct {
 	ID            uuid.UUID
@@ -25,6 +116,30 @@ type Invoice struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	UserID        uuid.UUID
+	Status        string
+}
+
+type Quote struct {
+	ID             uuid.UUID
+	QuoteRequestID uuid.UUID
+	Amount         string
+	Breakdown      json.RawMessage
+	Notes          string
+	Status         QuoteStatus
+	ExpiresAt      time.Time
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+type QuoteRequest struct {
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	ServiceID   uuid.UUID
+	Description string
+	Attachments []string
+	Status      QuoteRequestStatus
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 type RefreshToken struct {
@@ -35,6 +150,19 @@ type RefreshToken struct {
 	ReplacedBy uuid.NullUUID
 	ExpiresAt  time.Time
 	CreatedAt  time.Time
+}
+
+type Service struct {
+	ID          uuid.UUID
+	Name        string
+	Description string
+	Category    string
+	IsActive    bool
+	IsFeatured  bool
+	Icon        string
+	Image       string
+	Tags        []string
+	CreatedAt   time.Time
 }
 
 type User struct {

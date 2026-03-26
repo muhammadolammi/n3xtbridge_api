@@ -2,7 +2,7 @@
 INSERT INTO invoices (
     invoice_number, customer_name, customer_email, customer_phone, total, notes , items , discounts, user_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7,$8,
+    $1, $2, $3, $4, $5, $6, $7,$8,$9
 ) RETURNING *;
 
 
@@ -12,13 +12,17 @@ SELECT * FROM invoices WHERE invoice_number = $1;
 -- name: GetInvoice :one
 SELECT * FROM invoices WHERE id = $1;
 
--- name: GetUserInvoices :many
+-- name: GetWorkersCreatedInvoices :many
 SELECT * FROM invoices WHERE user_id = $1
 ORDER BY created_at DESC 
 LIMIT $2
 OFFSET $3 ;
 
-
+-- name: GetCustomerInvoices :many
+SELECT * FROM invoices WHERE customer_email = $1
+ORDER BY created_at DESC 
+LIMIT $2
+OFFSET $3 ;
 -- name: ListInvoices :many
 SELECT * FROM invoices ORDER BY created_at DESC LIMIT $1 OFFSET $2;
 
@@ -36,3 +40,12 @@ WHERE id = $1 RETURNING *;
 
 -- name: DeleteInvoice :exec
 DELETE FROM invoices WHERE id = $1;
+
+-- name: CountInvoices :one
+SELECT COUNT(*) FROM invoices;
+
+-- name: CountWorkersCreatedInvoices :one
+SELECT COUNT(*) FROM invoices WHERE user_id=$1;
+
+-- name: CountCustomersInvoices :one
+SELECT COUNT(*) FROM invoices WHERE customer_email=$1;
