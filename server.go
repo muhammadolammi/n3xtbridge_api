@@ -14,17 +14,20 @@ import (
 
 func server(apiConfig *handlers.Config) {
 	corsOptions := cors.Options{
-		AllowedOrigins: []string{
-			"http://localhost:3000",
-			"http://localhost:5173",
-			"https://n3xtbridge.com",
-			"https://www.n3xtbridge.com", // Add www version just in case
+		AllowedOrigins: []string{"http://localhost:3000", "http://localhost:8081", "https://n3xtbridge.com", "https://n3xtbridge-backend-755404739186.us-east1.run.app"},
+
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{
+			"Content-Type",
+			"Authorization",
+			"X-Requested-With",
+			"client-api-key",
+			"X-CSRF-Token",
+			"x-paystack-signature",
+			"Accept",
 		},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-Requested-With", "client-api-key", "Accept"},
 		AllowCredentials: true,
 		MaxAge:           300,
-		Debug:            true, // Check Cloud Run logs for [cors] prefix to debug
 	}
 
 	router := chi.NewRouter()
