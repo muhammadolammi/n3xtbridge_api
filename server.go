@@ -16,7 +16,7 @@ func server(apiConfig *handlers.Config) {
 	corsOptions := cors.Options{
 		AllowedOrigins: []string{"http://localhost:5173", "http://localhost:8081", "https://n3xtbridge.com", "https://n3xtbridge-backend-755404739186.us-east1.run.app"},
 
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{
 			"Content-Type",
 			"Authorization",
@@ -53,20 +53,25 @@ func server(apiConfig *handlers.Config) {
 	apiRoute.Post("/auth/signin", apiConfig.AuthService.LoginHandler)
 	apiRoute.Post("/auth/refresh", apiConfig.AuthService.RefreshHandler)
 
+	// unprotected routes
+	apiRoute.Get("/services", apiConfig.GetActiveServicesHandler)
+
 	// Authenticated Auth routes
 	apiRoute.Group(func(r chi.Router) {
 		r.Use(apiConfig.AuthService.RequireAuth)
 		r.Post("/auth/signout", apiConfig.AuthService.LogoutHandler)
 		r.Get("/auth/user", apiConfig.GetUserHandler)
+		r.Post("/quotes/request", apiConfig.CreateQuoteRequestHandler)
+		r.Get("/quotes/my-requests", apiConfig.GetUserQuoteRequestsHandler)
+		r.Get("/customer/invoices", apiConfig.GetCustomerInvoicesHandler)
 	})
 
 	// Invoice routes
 	apiRoute.Group(func(r chi.Router) {
 		r.Use(apiConfig.AuthService.RequireAuth)
 		r.Use(apiConfig.RequireRole("admin", "staff"))
-
 		r.Post("/invoices", apiConfig.CreateInvoiceHandler)
-		r.Get("/invoices", apiConfig.GetInvoicesHandler)
+		r.Get("/invoices", apiConfig.GetWorkersCreatedInvoicesHandler)
 		r.Get("/invoices/{id}", apiConfig.GetInvoiceHandler)
 	})
 
@@ -75,6 +80,12 @@ func server(apiConfig *handlers.Config) {
 		r.Use(apiConfig.AuthService.RequireAuth)
 		r.Use(apiConfig.RequireRole("admin"))
 		r.Get("/admin/invoices", apiConfig.AdminListAllInvoicesHandler)
+		r.Post("/admin/services", apiConfig.CreateServiceeHandler)
+		r.Get("/admin/services", apiConfig.AdminListAllServicesHandler)
+		r.Patch("/admin/services/{id}/status", apiConfig.AdminUpdateServiceStatusHandler)
+		r.Get("/admin/quote-requests", apiConfig.AdminGetQuoteRequestsHandler)
+		r.Post("/admin/quotes", apiConfig.AdminCreateQuoteHandler)
+
 	})
 
 	// Mount everything under /api

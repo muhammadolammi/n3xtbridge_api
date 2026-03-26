@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 	goauth "github.com/muhammadolammi/goauth/pkg/auth"
@@ -87,4 +88,78 @@ type ServiceOrderResponse struct {
 	Notes           string      `json:"notes,omitempty"`
 	CreatedAt       string      `json:"created_at"`
 	Message         string      `json:"message,omitempty"`
+}
+
+type Service struct {
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Category    string    `json:"category"`
+	IsActive    bool      `json:"is_active"`
+	IsFeatured  bool      `json:"is_featured"`
+	Icon        string    `json:"icon"`
+	Image       string    `json:"image"`
+	Tags        []string  `json:"tags"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type QuoteRequestStatus string
+
+const (
+	QuoteRequestStatusPending   QuoteRequestStatus = "pending"
+	QuoteRequestStatusReviewing QuoteRequestStatus = "reviewing"
+	QuoteRequestStatusQuoted    QuoteRequestStatus = "quoted"
+	QuoteRequestStatusRejected  QuoteRequestStatus = "rejected"
+)
+
+type QuoteStatus string
+
+const (
+	QuoteStatusDraft    QuoteStatus = "draft"
+	QuoteStatusSent     QuoteStatus = "sent"
+	QuoteStatusAccepted QuoteStatus = "accepted"
+	QuoteStatusDeclined QuoteStatus = "declined"
+	QuoteStatusExpired  QuoteStatus = "expired"
+)
+
+type QuoteBreakdown struct {
+	Name        string `json:"name"`
+	Cost        string `json:"cost"`
+	Description string `json:"description"`
+}
+type Quote struct {
+	ID             uuid.UUID        `json:"id"`
+	QuoteRequestID uuid.UUID        `json:"quote_request_id"`
+	Amount         string           `json:"amount"`
+	Breakdown      []QuoteBreakdown `json:"breakdown"`
+	Notes          string           `json:"notes"`
+	Status         QuoteStatus      `json:"status"`
+	ExpiresAt      time.Time        `json:"exire_at"`
+	CreatedAt      time.Time        `json:"created_at"`
+	UpdatedAt      time.Time        `json:"updated_at"`
+}
+
+type QuoteRequest struct {
+	ID          uuid.UUID          `json:"id"`
+	UserID      uuid.UUID          `json:"user_id"`
+	ServiceID   uuid.UUID          `json:"service_id"`
+	Description string             `json:"description"`
+	Attachments []string           `json:"attachments"`
+	Status      QuoteRequestStatus `json:"status"`
+	CreatedAt   time.Time          `json:"created_at"`
+	UpdatedAt   time.Time          `json:"updated_at"`
+}
+
+type GetQuoteRequestsRow struct {
+	ID          uuid.UUID          `json:"id"`
+	UserID      uuid.UUID          `json:"user_id"`
+	ServiceID   uuid.UUID          `json:"service_id"`
+	Description string             `json:"description"`
+	Attachments []string           `json:"attachments"`
+	Status      QuoteRequestStatus `json:"status"`
+	CreatedAt   time.Time          `json:"created_at"`
+	UpdatedAt   time.Time          `json:"updated_at"`
+	UserEmail   string             `json:"user_email"`
+	UserName    string             `json:"user_name"`
+	ServiceName string             `json:"service_name"`
 }

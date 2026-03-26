@@ -109,7 +109,7 @@ func (cfg *Config) GetInvoiceHandler(w http.ResponseWriter, r *http.Request) {
 	helpers.RespondWithJson(w, http.StatusOK, dbInvoicetoInvoice(invoice))
 }
 
-func (cfg *Config) GetInvoicesHandler(w http.ResponseWriter, r *http.Request) {
+func (cfg *Config) GetWorkersCreatedInvoicesHandler(w http.ResponseWriter, r *http.Request) {
 	user, httpstatus, err := cfg.getUserFromReq(r)
 	if err != nil {
 		helpers.RespondWithError(w, httpstatus, err.Error())
@@ -128,7 +128,7 @@ func (cfg *Config) GetInvoicesHandler(w http.ResponseWriter, r *http.Request) {
 		offset = 0 // Default
 	}
 
-	invoices, err := cfg.DB.GetUserInvoices(r.Context(), database.GetUserInvoicesParams{
+	invoices, err := cfg.DB.GetWorkersCreatedInvoices(r.Context(), database.GetWorkersCreatedInvoicesParams{
 		Limit:  int32(limit),
 		Offset: int32(offset),
 		UserID: user.ID,
@@ -139,7 +139,65 @@ func (cfg *Config) GetInvoicesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	helpers.RespondWithJson(w, http.StatusOK, dbInvoicestoInvoices(invoices))
+	count, err := cfg.DB.CountWorkersCreatedInvoices(r.Context(), user.ID)
+	if err != nil {
+		log.Println("DB ERROR error getting user invoices count: " + err.Error())
+		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting user invoices  count")
+		return
+	}
+	res := struct {
+		Invoices []invoicepackage.Invoice `json:"invoices"`
+		Total    int64                    `json:"total"`
+	}{
+		Invoices: dbInvoicestoInvoices(invoices),
+		Total:    count,
+	}
+	helpers.RespondWithJson(w, http.StatusOK, res)
+}
+func (cfg *Config) GetCustomerInvoicesHandler(w http.ResponseWriter, r *http.Request) {
+	user, httpstatus, err := cfg.getUserFromReq(r)
+	if err != nil {
+		helpers.RespondWithError(w, httpstatus, err.Error())
+
+	}
+
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 10 // Default
+	}
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil || offset < 0 {
+		offset = 0 // Default
+	}
+
+	invoices, err := cfg.DB.GetCustomerInvoices(r.Context(), database.GetCustomerInvoicesParams{
+		Limit:         int32(limit),
+		Offset:        int32(offset),
+		CustomerEmail: user.Email,
+	})
+	if err != nil {
+		log.Println("DB ERROR error getting invoice: " + err.Error())
+		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting invoice")
+		return
+	}
+
+	count, err := cfg.DB.CountCustomersInvoices(r.Context(), user.Email)
+	if err != nil {
+		log.Println("DB ERROR error getting user invoices count: " + err.Error())
+		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting user invoices  count")
+		return
+	}
+	res := struct {
+		Invoices []invoicepackage.Invoice `json:"invoices"`
+		Total    int64                    `json:"total"`
+	}{
+		Invoices: dbInvoicestoInvoices(invoices),
+		Total:    count,
+	}
+	helpers.RespondWithJson(w, http.StatusOK, res)
 }
 
 func (cfg *Config) AdminListAllInvoicesHandler(w http.ResponseWriter, r *http.Request) {
@@ -154,5 +212,18 @@ func (cfg *Config) AdminListAllInvoicesHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	helpers.RespondWithJson(w, http.StatusOK, dbInvoicestoInvoices(invoices))
+	count, err := cfg.DB.CountInvoices(r.Context())
+	if err != nil {
+		log.Println("DB ERROR error getting  invoices count: " + err.Error())
+		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting  invoices  count")
+		return
+	}
+	res := struct {
+		Invoices []invoicepackage.Invoice `json:"invoices"`
+		Total    int64                    `json:"total"`
+	}{
+		Invoices: dbInvoicestoInvoices(invoices),
+		Total:    count,
+	}
+	helpers.RespondWithJson(w, http.StatusOK, res)
 }

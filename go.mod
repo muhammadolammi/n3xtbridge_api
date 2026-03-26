@@ -11,6 +11,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.11.2
 	github.com/muhammadolammi/goauth v1.1.6
+	github.com/sqlc-dev/pqtype v0.3.0
 	golang.org/x/crypto v0.49.0
 )
 
