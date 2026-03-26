@@ -52,7 +52,10 @@ func ConnectDB(ctx context.Context, cfg *handlers.Config) {
 
 		cfg.DB = database.New(db)
 		provider := auth.NewProvider(cfg.DB)
-		authService := goauth.NewAuthService(cfg.JwtSecret, "n3xtbridge", provider, os.Getenv("ENV") == "deployment")
+		env := os.Getenv("ENV")
+		isProd := (env == "production" || env == "deployment")
+		log.Printf("starting with isProd= %v\n", isProd)
+		authService := goauth.NewAuthService(cfg.JwtSecret, "n3xtbridge", provider, isProd)
 		if authService == nil {
 			log.Println("✅ nil auth")
 
