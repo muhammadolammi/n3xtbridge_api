@@ -49,11 +49,11 @@ func ConnectDB(ctx context.Context, cfg *handlers.Config) {
 		db.SetMaxOpenConns(5)
 		db.SetMaxIdleConns(2)
 		db.SetConnMaxLifetime(5 * time.Minute)
-
 		cfg.DB = database.New(db)
 		provider := auth.NewProvider(cfg.DB)
 		env := os.Getenv("ENV")
-		isProd := (env == "production" || env == "deployment")
+		isCloudRun := os.Getenv("K_SERVICE") // This is always present on Google Cloud Run
+		isProd := (env == "production" || env == "deployment" || isCloudRun != "")
 		log.Printf("starting with isProd= %v\n", isProd)
 		authService := goauth.NewAuthService(cfg.JwtSecret, "n3xtbridge", provider, isProd)
 		if authService == nil {
@@ -64,6 +64,7 @@ func ConnectDB(ctx context.Context, cfg *handlers.Config) {
 			log.Println("✅ nil auth")
 
 		}
+		log.Println(authService.IsProduction)
 		cfg.AuthService = authService
 		log.Println("✅ Postgres connected")
 		return
