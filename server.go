@@ -13,54 +13,68 @@ import (
 )
 
 func server(apiConfig *handlers.Config) {
-
-	// Define CORS options
 	corsOptions := cors.Options{
 		AllowedOrigins: []string{
-			"http://localhost:3000", "http://localhost:5173", "https://n3xtbridge.com", // Your Firebase URL
-		}, // You can customize this based on your needs
-
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{
-			"Content-Type",
-			"Authorization",
-			"X-Requested-With",
-			"client-api-key",
-			"X-CSRF-Token",
-			"x-paystack-signature",
-			"Accept",
+			"http://localhost:3000",
+			"http://localhost:5173",
+			"https://n3xtbridge.com",
+			"https://www.n3xtbridge.com", // Add www version just in case
 		},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-Requested-With", "client-api-key", "Accept"},
 		AllowCredentials: true,
 		MaxAge:           300,
+		Debug:            true, // Check Cloud Run logs for [cors] prefix to debug
 	}
+
 	router := chi.NewRouter()
-	apiRoute := chi.NewRouter()
-	router.Use(cors.Handler(corsOptions))
-	// ADD MIDDLREWARE
-	// A good base middleware stack
+
+	// 1. GLOBAL MIDDLEWARE (Must be in this order)
 	router.Use(middleware.RequestID)
 	router.Use(middleware.RealIP)
 	router.Use(middleware.Logger)
+	router.Use(cors.Handler(corsOptions)) // CORS MUST BE BEFORE AUTH
 	router.Use(middleware.Recoverer)
-	router.Use(apiConfig.ClientAuth())
 
-	// ADD ROUTES
+	// 2. DEFINE THE API ROUTE
+	apiRoute := chi.NewRouter()
+
+	// 3. APPLY CLIENT AUTH ONLY TO THE API GROUP (Not globally)
+	apiRoute.Use(apiConfig.ClientAuth())
+
+	// Public Health Checks
 	apiRoute.Get("/hello", handlers.HelloReady)
-	apiRoute.Get("/error", handlers.ErrorReady)
 
-	// Auth routes (public, no auth required)
+	// Auth routes
 	apiRoute.Post("/auth/signup", apiConfig.SignupHandler)
 	apiRoute.Post("/auth/signin", apiConfig.AuthService.LoginHandler)
-	apiRoute.With(apiConfig.AuthService.RequireAuth).Post("/auth/signout", apiConfig.AuthService.LogoutHandler)
 	apiRoute.Post("/auth/refresh", apiConfig.AuthService.RefreshHandler)
-	apiRoute.With(apiConfig.AuthService.RequireAuth).Get("/auth/user", apiConfig.GetUserHandler)
 
-	// Invoice routes (requires JWT auth + staff or admin role)
-	apiRoute.With(apiConfig.AuthService.RequireAuth, apiConfig.RequireRole("admin", "staff")).Post("/invoices", apiConfig.CreateInvoiceHandler)
-	apiRoute.With(apiConfig.AuthService.RequireAuth, apiConfig.RequireRole("admin", "staff")).Get("/invoices", apiConfig.GetInvoicesHandler)
-	apiRoute.With(apiConfig.AuthService.RequireAuth, apiConfig.RequireRole("admin", "staff")).Get("/invoices/{id}", apiConfig.GetInvoiceHandler)
-	apiRoute.With(apiConfig.AuthService.RequireAuth, apiConfig.RequireRole("admin")).Get("/admin/invoices", apiConfig.AdminListAllInvoicesHandler)
+	// Authenticated Auth routes
+	apiRoute.Group(func(r chi.Router) {
+		r.Use(apiConfig.AuthService.RequireAuth)
+		r.Post("/auth/signout", apiConfig.AuthService.LogoutHandler)
+		r.Get("/auth/user", apiConfig.GetUserHandler)
+	})
 
+	// Invoice routes
+	apiRoute.Group(func(r chi.Router) {
+		r.Use(apiConfig.AuthService.RequireAuth)
+		r.Use(apiConfig.RequireRole("admin", "staff"))
+
+		r.Post("/invoices", apiConfig.CreateInvoiceHandler)
+		r.Get("/invoices", apiConfig.GetInvoicesHandler)
+		r.Get("/invoices/{id}", apiConfig.GetInvoiceHandler)
+	})
+
+	// Admin only
+	apiRoute.Group(func(r chi.Router) {
+		r.Use(apiConfig.AuthService.RequireAuth)
+		r.Use(apiConfig.RequireRole("admin"))
+		r.Get("/admin/invoices", apiConfig.AdminListAllInvoicesHandler)
+	})
+
+	// Mount everything under /api
 	router.Mount("/api", apiRoute)
 
 	port := os.Getenv("PORT")

@@ -12,6 +12,10 @@ import (
 func (cfg *Config) ClientAuth() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodOptions {
+				next.ServeHTTP(w, r)
+				return
+			}
 			clientApiKey := r.Header.Get("client-api-key")
 			if clientApiKey == "" {
 				log.Println("empty client api key in request.")
