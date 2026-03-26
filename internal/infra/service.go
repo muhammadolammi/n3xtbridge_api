@@ -54,17 +54,7 @@ func ConnectDB(ctx context.Context, cfg *handlers.Config) {
 		env := os.Getenv("ENV")
 		isCloudRun := os.Getenv("K_SERVICE") // This is always present on Google Cloud Run
 		isProd := (env == "production" || env == "deployment" || isCloudRun != "")
-		log.Printf("starting with isProd= %v\n", isProd)
 		authService := goauth.NewAuthService(cfg.JwtSecret, "n3xtbridge", provider, isProd)
-		if authService == nil {
-			log.Println("✅ nil auth")
-
-		}
-		if provider == nil {
-			log.Println("✅ nil auth")
-
-		}
-		log.Println(authService.IsProduction)
 		cfg.AuthService = authService
 		log.Println("✅ Postgres connected")
 		return
