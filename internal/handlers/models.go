@@ -122,21 +122,22 @@ const (
 	QuoteStatusExpired  QuoteStatus = "expired"
 )
 
-type QuoteBreakdown struct {
+type QuoteItem struct {
 	Name        string `json:"name"`
 	Cost        string `json:"cost"`
 	Description string `json:"description"`
+	Quantity    int    `json:"quantity"`
 }
 type Quote struct {
-	ID             uuid.UUID        `json:"id"`
-	QuoteRequestID uuid.UUID        `json:"quote_request_id"`
-	Amount         string           `json:"amount"`
-	Breakdown      []QuoteBreakdown `json:"breakdown"`
-	Notes          string           `json:"notes"`
-	Status         QuoteStatus      `json:"status"`
-	ExpiresAt      time.Time        `json:"exire_at"`
-	CreatedAt      time.Time        `json:"created_at"`
-	UpdatedAt      time.Time        `json:"updated_at"`
+	ID             uuid.UUID   `json:"id"`
+	QuoteRequestID uuid.UUID   `json:"quote_request_id"`
+	Amount         string      `json:"amount"`
+	Breakdown      []QuoteItem `json:"breakdown"`
+	Notes          string      `json:"notes"`
+	Status         QuoteStatus `json:"status"`
+	ExpiresAt      time.Time   `json:"expires_at"`
+	CreatedAt      time.Time   `json:"created_at"`
+	UpdatedAt      time.Time   `json:"updated_at"`
 }
 
 type QuoteRequest struct {
@@ -162,4 +163,34 @@ type GetQuoteRequestsRow struct {
 	UserEmail   string             `json:"user_email"`
 	UserName    string             `json:"user_name"`
 	ServiceName string             `json:"service_name"`
+}
+
+type GetUserQuoteRequestsRow struct {
+	ID      uuid.UUID `json:"id"`
+	UserID  uuid.UUID `json:"user_id"`
+	QuoteID uuid.UUID `json:"quote_id"`
+
+	ServiceID   uuid.UUID          `json:"service_id"`
+	Description string             `json:"description"`
+	Attachments []string           `json:"attachments"`
+	Status      QuoteRequestStatus `json:"status"`
+	CreatedAt   time.Time          `json:"created_at"`
+	UpdatedAt   time.Time          `json:"updated_at"`
+
+	ServiceName string `json:"service_name"`
+}
+
+type GetUserQuotesWithServiceRow struct {
+	ID             uuid.UUID   `json:"id"`
+	QuoteRequestID uuid.UUID   `json:"quote_request_id"`
+	Amount         string      `json:"amount"`
+	Breakdown      []QuoteItem `json:"breakdown"`
+	Notes          string      `json:"notes"`
+	Status         QuoteStatus `json:"status"`
+	CreatedAt      time.Time   `json:"created_at"`
+	UpdatedAt      time.Time   `json:"updated_at"`
+	ExpiresAt      time.Time   `json:"expires_at"`
+	ServiceIcon    string      `json:"service_icon"`
+	ServiceName    string      `json:"service_name"`
+	ServiceID      uuid.UUID   `json:"service_id"`
 }

@@ -27,6 +27,7 @@ func (cfg *Config) CreateInvoiceHandler(w http.ResponseWriter, r *http.Request) 
 	user, httpstatus, err := cfg.getUserFromReq(r)
 	if err != nil {
 		helpers.RespondWithError(w, httpstatus, err.Error())
+		return
 
 	}
 
@@ -96,11 +97,13 @@ func (cfg *Config) GetInvoiceHandler(w http.ResponseWriter, r *http.Request) {
 	user, httpstatus, err := cfg.getUserFromReq(r)
 	if err != nil {
 		helpers.RespondWithError(w, httpstatus, err.Error())
+		return
 
 	}
 	if user.Role != "admin" {
 		//  staff must own the invoice
-		if user.ID != invoice.UserID {
+		if user.ID != invoice.UserID && invoice.CustomerEmail != user.Email {
+
 			helpers.RespondWithError(w, http.StatusUnauthorized, "user not authorize")
 			return
 		}
@@ -112,7 +115,9 @@ func (cfg *Config) GetInvoiceHandler(w http.ResponseWriter, r *http.Request) {
 func (cfg *Config) GetWorkersCreatedInvoicesHandler(w http.ResponseWriter, r *http.Request) {
 	user, httpstatus, err := cfg.getUserFromReq(r)
 	if err != nil {
+
 		helpers.RespondWithError(w, httpstatus, err.Error())
+		return
 
 	}
 
@@ -158,6 +163,7 @@ func (cfg *Config) GetCustomerInvoicesHandler(w http.ResponseWriter, r *http.Req
 	user, httpstatus, err := cfg.getUserFromReq(r)
 	if err != nil {
 		helpers.RespondWithError(w, httpstatus, err.Error())
+		return
 
 	}
 

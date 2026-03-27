@@ -86,6 +86,7 @@ func (cfg *Config) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 	user, httpstatus, err := cfg.getUserFromReq(r)
 	if err != nil {
 		helpers.RespondWithError(w, httpstatus, err.Error())
+		return
 
 	}
 	helpers.RespondWithJson(w, http.StatusOK, dbUserToUser(user))

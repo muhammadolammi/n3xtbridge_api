@@ -66,6 +66,7 @@ const (
 	QuoteStatusAccepted QuoteStatus = "accepted"
 	QuoteStatusDeclined QuoteStatus = "declined"
 	QuoteStatusExpired  QuoteStatus = "expired"
+	QuoteStatusInReview QuoteStatus = "in-review"
 )
 
 func (e *QuoteStatus) Scan(src interface{}) error {

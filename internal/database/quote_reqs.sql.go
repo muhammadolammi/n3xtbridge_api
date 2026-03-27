@@ -69,12 +69,34 @@ func (q *Queries) CreateQuoteRequest(ctx context.Context, arg CreateQuoteRequest
 	return i, err
 }
 
+const getQuoteRequest = `-- name: GetQuoteRequest :one
+SELECT id, user_id, service_id, description, attachments, status, created_at, updated_at FROM quote_requests
+WHERE id=$1
+`
+
+func (q *Queries) GetQuoteRequest(ctx context.Context, id uuid.UUID) (QuoteRequest, error) {
+	row := q.db.QueryRowContext(ctx, getQuoteRequest, id)
+	var i QuoteRequest
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ServiceID,
+		&i.Description,
+		pq.Array(&i.Attachments),
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getQuoteRequests = `-- name: GetQuoteRequests :many
 SELECT 
     qr.id, qr.user_id, qr.service_id, qr.description, qr.attachments, qr.status, qr.created_at, qr.updated_at, 
     u.email as user_email, 
     u.first_name as user_name,
     s.name as service_name
+    
 FROM quote_requests qr
 JOIN users u ON qr.user_id = u.id
 JOIN services s ON qr.service_id = s.id
@@ -137,9 +159,15 @@ func (q *Queries) GetQuoteRequests(ctx context.Context, arg GetQuoteRequestsPara
 }
 
 const getUserQuoteRequests = `-- name: GetUserQuoteRequests :many
-SELECT id, user_id, service_id, description, attachments, status, created_at, updated_at FROM quote_requests
-WHERE user_id=$1
-ORDER BY created_at DESC
+SELECT 
+  qr.id, qr.user_id, qr.service_id, qr.description, qr.attachments, qr.status, qr.created_at, qr.updated_at,
+  s.name AS service_name,
+  q.id AS quote_id
+FROM quote_requests qr
+JOIN services s ON qr.service_id = s.id
+LEFT JOIN quotes q ON q.quote_request_id = qr.id 
+WHERE qr.user_id = $1
+ORDER BY qr.created_at DESC
 LIMIT $2 OFFSET $3
 `
 
@@ -149,15 +177,29 @@ type GetUserQuoteRequestsParams struct {
 	Offset int32
 }
 
-func (q *Queries) GetUserQuoteRequests(ctx context.Context, arg GetUserQuoteRequestsParams) ([]QuoteRequest, error) {
+type GetUserQuoteRequestsRow struct {
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	ServiceID   uuid.UUID
+	Description string
+	Attachments []string
+	Status      QuoteRequestStatus
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	ServiceName string
+	QuoteID     uuid.NullUUID
+}
+
+// Use LEFT JOIN so requests without quotes still show up
+func (q *Queries) GetUserQuoteRequests(ctx context.Context, arg GetUserQuoteRequestsParams) ([]GetUserQuoteRequestsRow, error) {
 	rows, err := q.db.QueryContext(ctx, getUserQuoteRequests, arg.UserID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []QuoteRequest
+	var items []GetUserQuoteRequestsRow
 	for rows.Next() {
-		var i QuoteRequest
+		var i GetUserQuoteRequestsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
@@ -167,6 +209,8 @@ func (q *Queries) GetUserQuoteRequests(ctx context.Context, arg GetUserQuoteRequ
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ServiceName,
+			&i.QuoteID,
 		); err != nil {
 			return nil, err
 		}
@@ -179,6 +223,20 @@ func (q *Queries) GetUserQuoteRequests(ctx context.Context, arg GetUserQuoteRequ
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateQuoteRequestDescription = `-- name: UpdateQuoteRequestDescription :exec
+UPDATE quote_requests SET description = $2, updated_at = NOW() WHERE id = $1
+`
+
+type UpdateQuoteRequestDescriptionParams struct {
+	ID          uuid.UUID
+	Description string
+}
+
+func (q *Queries) UpdateQuoteRequestDescription(ctx context.Context, arg UpdateQuoteRequestDescriptionParams) error {
+	_, err := q.db.ExecContext(ctx, updateQuoteRequestDescription, arg.ID, arg.Description)
+	return err
 }
 
 const updateQuoteRequestStatus = `-- name: UpdateQuoteRequestStatus :exec
