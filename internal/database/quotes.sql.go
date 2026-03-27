@@ -76,8 +76,12 @@ func (q *Queries) CreateQuote(ctx context.Context, arg CreateQuoteParams) (Quote
 }
 
 const getQuotes = `-- name: GetQuotes :many
-SELECT id, quote_request_id, amount, breakdown, notes, status, expires_at, created_at, updated_at FROM quotes
-ORDER BY created_at DESC
+SELECT    q.id, q.quote_request_id, q.amount, q.breakdown, q.notes, q.status, q.expires_at, q.created_at, q.updated_at, 
+    s.name as service_name,
+    s.icon as service_icon
+FROM quotes q 
+JOIN quote_requests qr ON q.quote_request_id = qr.id
+JOIN services s ON qr.service_id = s.id
 LIMIT $1 OFFSET $2
 `
 
@@ -86,15 +90,29 @@ type GetQuotesParams struct {
 	Offset int32
 }
 
-func (q *Queries) GetQuotes(ctx context.Context, arg GetQuotesParams) ([]Quote, error) {
+type GetQuotesRow struct {
+	ID             uuid.UUID
+	QuoteRequestID uuid.UUID
+	Amount         string
+	Breakdown      json.RawMessage
+	Notes          string
+	Status         QuoteStatus
+	ExpiresAt      time.Time
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	ServiceName    string
+	ServiceIcon    string
+}
+
+func (q *Queries) GetQuotes(ctx context.Context, arg GetQuotesParams) ([]GetQuotesRow, error) {
 	rows, err := q.db.QueryContext(ctx, getQuotes, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Quote
+	var items []GetQuotesRow
 	for rows.Next() {
-		var i Quote
+		var i GetQuotesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.QuoteRequestID,
@@ -105,6 +123,8 @@ func (q *Queries) GetQuotes(ctx context.Context, arg GetQuotesParams) ([]Quote, 
 			&i.ExpiresAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ServiceName,
+			&i.ServiceIcon,
 		); err != nil {
 			return nil, err
 		}
@@ -119,15 +139,69 @@ func (q *Queries) GetQuotes(ctx context.Context, arg GetQuotesParams) ([]Quote, 
 	return items, nil
 }
 
+const getUserQuoteWithService = `-- name: GetUserQuoteWithService :one
+SELECT 
+    q.id, q.quote_request_id, q.amount, q.breakdown, q.notes, q.status, q.expires_at, q.created_at, q.updated_at, 
+    s.name as service_name,
+    s.icon as service_icon,
+    s.id as service_id
+FROM quotes q 
+JOIN quote_requests qr ON q.quote_request_id = qr.id
+JOIN services s ON qr.service_id = s.id
+WHERE qr.user_id = $1 AND q.id= $2
+`
+
+type GetUserQuoteWithServiceParams struct {
+	UserID uuid.UUID
+	ID     uuid.UUID
+}
+
+type GetUserQuoteWithServiceRow struct {
+	ID             uuid.UUID
+	QuoteRequestID uuid.UUID
+	Amount         string
+	Breakdown      json.RawMessage
+	Notes          string
+	Status         QuoteStatus
+	ExpiresAt      time.Time
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	ServiceName    string
+	ServiceIcon    string
+	ServiceID      uuid.UUID
+}
+
+func (q *Queries) GetUserQuoteWithService(ctx context.Context, arg GetUserQuoteWithServiceParams) (GetUserQuoteWithServiceRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserQuoteWithService, arg.UserID, arg.ID)
+	var i GetUserQuoteWithServiceRow
+	err := row.Scan(
+		&i.ID,
+		&i.QuoteRequestID,
+		&i.Amount,
+		&i.Breakdown,
+		&i.Notes,
+		&i.Status,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ServiceName,
+		&i.ServiceIcon,
+		&i.ServiceID,
+	)
+	return i, err
+}
+
 const getUserQuotesWithService = `-- name: GetUserQuotesWithService :many
 SELECT 
     q.id, q.quote_request_id, q.amount, q.breakdown, q.notes, q.status, q.expires_at, q.created_at, q.updated_at, 
     s.name as service_name,
-    s.icon as service_icon
+    s.icon as service_icon,
+        s.id as service_id
+
 FROM quotes q 
 JOIN quote_requests qr ON q.quote_request_id = qr.id
 JOIN services s ON qr.service_id = s.id
-WHERE qr.user_id = $1
+WHERE qr.user_id = $1 AND q.status= 'sent'
 ORDER BY q.created_at DESC
 LIMIT $2 OFFSET $3
 `
@@ -150,6 +224,7 @@ type GetUserQuotesWithServiceRow struct {
 	UpdatedAt      time.Time
 	ServiceName    string
 	ServiceIcon    string
+	ServiceID      uuid.UUID
 }
 
 func (q *Queries) GetUserQuotesWithService(ctx context.Context, arg GetUserQuotesWithServiceParams) ([]GetUserQuotesWithServiceRow, error) {
@@ -173,6 +248,7 @@ func (q *Queries) GetUserQuotesWithService(ctx context.Context, arg GetUserQuote
 			&i.UpdatedAt,
 			&i.ServiceName,
 			&i.ServiceIcon,
+			&i.ServiceID,
 		); err != nil {
 			return nil, err
 		}

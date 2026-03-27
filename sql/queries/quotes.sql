@@ -7,17 +7,34 @@ RETURNING *;
 SELECT 
     q.*, 
     s.name as service_name,
+    s.icon as service_icon,
+        s.id as service_id
+
+FROM quotes q 
+JOIN quote_requests qr ON q.quote_request_id = qr.id
+JOIN services s ON qr.service_id = s.id
+WHERE qr.user_id = $1 AND q.status= 'sent'
+ORDER BY q.created_at DESC
+LIMIT $2 OFFSET $3;
+
+-- name: GetUserQuoteWithService :one
+SELECT 
+    q.*, 
+    s.name as service_name,
+    s.icon as service_icon,
+    s.id as service_id
+FROM quotes q 
+JOIN quote_requests qr ON q.quote_request_id = qr.id
+JOIN services s ON qr.service_id = s.id
+WHERE qr.user_id = $1 AND q.id= $2;
+
+-- name: GetQuotes :many
+SELECT    q.*, 
+    s.name as service_name,
     s.icon as service_icon
 FROM quotes q 
 JOIN quote_requests qr ON q.quote_request_id = qr.id
 JOIN services s ON qr.service_id = s.id
-WHERE qr.user_id = $1
-ORDER BY q.created_at DESC
-LIMIT $2 OFFSET $3;
-
--- name: GetQuotes :many
-SELECT * FROM quotes
-ORDER BY created_at DESC
 LIMIT $1 OFFSET $2;
 
 
@@ -32,3 +49,4 @@ WHERE qr.user_id = $1;
 
 -- name: UpdateQuoteStatus :exec
 UPDATE quotes SET status = $2, updated_at = NOW() WHERE id = $1;
+

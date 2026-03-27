@@ -113,16 +113,10 @@ func DbQuoteRequestsToQuoteRequests(dbReqs []database.QuoteRequest) []QuoteReque
 	return res
 }
 
-// Define a small struct for the breakdown items if you want typed data
-type QuoteItem struct {
-	Item string  `json:"item"`
-	Cost float64 `json:"cost"`
-}
-
 func DbQuoteToQuote(dbQuote database.Quote) Quote {
 	// Parse the decimal string to float64 for the frontend
 	amount, _ := strconv.ParseFloat(dbQuote.Amount, 64)
-	breakDowns := []QuoteBreakdown{}
+	breakDowns := []QuoteItem{}
 	err := json.Unmarshal(dbQuote.Breakdown, &breakDowns)
 	if err != nil {
 
@@ -170,6 +164,64 @@ func DbQuoteRequestRowsToQuoteRequestsRow(dbRows []database.GetQuoteRequestsRow)
 	res := make([]GetQuoteRequestsRow, 0, len(dbRows))
 	for _, row := range dbRows {
 		res = append(res, DbQuoteRequestRowToQuoteRequestRow(row))
+	}
+	return res
+}
+
+func DbUserQuoteRequestRowToUserQuoteRequestRow(dbRow database.GetUserQuoteRequestsRow) GetUserQuoteRequestsRow {
+	return GetUserQuoteRequestsRow{
+		ID:          dbRow.ID,
+		UserID:      dbRow.UserID,
+		QuoteID:     dbRow.QuoteID.UUID,
+		ServiceID:   dbRow.ServiceID,
+		Description: dbRow.Description,
+		Attachments: dbRow.Attachments,
+		Status:      QuoteRequestStatus(dbRow.Status),
+		CreatedAt:   dbRow.CreatedAt,
+		UpdatedAt:   dbRow.UpdatedAt,
+
+		ServiceName: dbRow.ServiceName,
+	}
+}
+
+func DbUserQuoteRequestRowsToUserQuoteRequestsRow(dbRows []database.GetUserQuoteRequestsRow) []GetUserQuoteRequestsRow {
+	res := make([]GetUserQuoteRequestsRow, 0, len(dbRows))
+	for _, row := range dbRows {
+		res = append(res, DbUserQuoteRequestRowToUserQuoteRequestRow(row))
+	}
+	return res
+}
+
+func DbUserQuotesWithServiceRowToUserQuotesWithServiceRow(dbQuote database.GetUserQuotesWithServiceRow) GetUserQuotesWithServiceRow {
+	// Parse the decimal string to float64 for the frontend
+	amount, _ := strconv.ParseFloat(dbQuote.Amount, 64)
+	breakDowns := []QuoteItem{}
+	err := json.Unmarshal(dbQuote.Breakdown, &breakDowns)
+	if err != nil {
+
+		log.Printf("Error unmarshaling breakdowns for quote %s: %v", dbQuote.ID, err)
+	}
+
+	return GetUserQuotesWithServiceRow{
+		ID:             dbQuote.ID,
+		QuoteRequestID: dbQuote.QuoteRequestID,
+		Amount:         fmt.Sprintf("%.2f", amount),
+		Breakdown:      breakDowns,
+		Notes:          dbQuote.Notes,
+		Status:         QuoteStatus(dbQuote.Status),
+		ExpiresAt:      dbQuote.ExpiresAt,
+		CreatedAt:      dbQuote.CreatedAt,
+		UpdatedAt:      dbQuote.UpdatedAt,
+		ServiceIcon:    dbQuote.ServiceIcon,
+		ServiceName:    dbQuote.ServiceName,
+		ServiceID:      dbQuote.ServiceID,
+	}
+}
+
+func DbUserQuotesWithServiceRowsToUserQuotesWithServiceRows(dbQuotes []database.GetUserQuotesWithServiceRow) []GetUserQuotesWithServiceRow {
+	res := make([]GetUserQuotesWithServiceRow, 0, len(dbQuotes))
+	for _, q := range dbQuotes {
+		res = append(res, DbUserQuotesWithServiceRowToUserQuotesWithServiceRow(q))
 	}
 	return res
 }

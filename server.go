@@ -61,18 +61,23 @@ func server(apiConfig *handlers.Config) {
 		r.Use(apiConfig.AuthService.RequireAuth)
 		r.Post("/auth/signout", apiConfig.AuthService.LogoutHandler)
 		r.Get("/auth/user", apiConfig.GetUserHandler)
-		r.Post("/quotes/request", apiConfig.CreateQuoteRequestHandler)
-		r.Get("/quotes/my-requests", apiConfig.GetUserQuoteRequestsHandler)
+		r.Post("/customer/quotes/requests", apiConfig.CreateQuoteRequestHandler)
+		r.Get("/customer/quotes/my-requests", apiConfig.GetUserQuoteRequestsHandler)
+		r.Get("/customer/quotes", apiConfig.GetUserQuotesWithServiceHandler)
+		r.Get("/customer/quotes/{id}", apiConfig.GetUserQuoteWithServiceHandler)
+
 		r.Get("/customer/invoices", apiConfig.GetCustomerInvoicesHandler)
+		r.Get("/invoices/{id}", apiConfig.GetInvoiceHandler)
+		r.Patch("/customer/quotes/requests/{id}/description", apiConfig.UpdateUserQuoteRequestDescriptionHandler)
+
 	})
 
 	// Invoice routes
 	apiRoute.Group(func(r chi.Router) {
 		r.Use(apiConfig.AuthService.RequireAuth)
 		r.Use(apiConfig.RequireRole("admin", "staff"))
-		r.Post("/invoices", apiConfig.CreateInvoiceHandler)
-		r.Get("/invoices", apiConfig.GetWorkersCreatedInvoicesHandler)
-		r.Get("/invoices/{id}", apiConfig.GetInvoiceHandler)
+		r.Post("/worker/invoices", apiConfig.CreateInvoiceHandler)
+		r.Get("/worker/invoices", apiConfig.GetWorkersCreatedInvoicesHandler)
 	})
 
 	// Admin only
@@ -85,6 +90,9 @@ func server(apiConfig *handlers.Config) {
 		r.Patch("/admin/services/{id}/status", apiConfig.AdminUpdateServiceStatusHandler)
 		r.Get("/admin/quote-requests", apiConfig.AdminGetQuoteRequestsHandler)
 		r.Post("/admin/quotes", apiConfig.AdminCreateQuoteHandler)
+		r.Get("/admin/quotes", apiConfig.AdminGetQuotesHandler)
+
+		r.Patch("/admin/quotes/{id}/status", apiConfig.AdminUpdateQuoteStatusHandler)
 
 	})
 
