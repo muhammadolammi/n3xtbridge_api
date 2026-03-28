@@ -32,6 +32,16 @@ func (cfg *Config) CreateQuoteRequestHandler(w http.ResponseWriter, r *http.Requ
 		helpers.RespondWithError(w, http.StatusBadRequest, "invalid request, user_id, service_id, and description can't be empty ")
 		return
 	}
+	user, err := cfg.DBQueries.GetUserByID(r.Context(), input.UserID)
+	if err != nil {
+		log.Println("DB ERROR error getting user: " + err.Error())
+		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting user")
+		return
+
+	}
+	if user.Role == "admin" {
+		helpers.RespondWithError(w, http.StatusBadRequest, "admin should not be creating request")
+	}
 	quoteRequest, err := cfg.DBQueries.CreateQuoteRequest(r.Context(), database.CreateQuoteRequestParams{
 		UserID:      input.UserID,
 		ServiceName: input.ServiceName,
