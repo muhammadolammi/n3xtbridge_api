@@ -1,6 +1,6 @@
 -- name: CreateQuoteRequest :one
-INSERT INTO quote_requests (user_id, service_id, description, attachments)
-VALUES ($1, $2, $3, $4)
+INSERT INTO quote_requests (user_id, service_id,service_name,  description, attachments)
+VALUES ($1, $2, $3, $4,$5)
 RETURNING *;
 
 -- name: GetQuoteRequests :many

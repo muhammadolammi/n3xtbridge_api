@@ -11,7 +11,7 @@ import (
 
 type Config struct {
 	DBURL                      string
-	DB                         *database.Queries
+	DBQueries                  *database.Queries
 	DBConn                     *sql.DB
 	ClientApiKey               string
 	JwtSecret                  string
@@ -39,55 +39,6 @@ type User struct {
 	State       string         `json:"state"`
 	Role        string         `json:"role"`
 	CreatedAt   sql.NullTime   `json:"created_at"`
-}
-
-// Appliance represents an item to be purchased from a partner
-type Appliance struct {
-	Name          string  `json:"name"`
-	Quantity      int     `json:"quantity"`
-	Price         float64 `json:"price"` // Estimated cost from partner
-	PartnerVendor string  `json:"partner_vendor,omitempty"`
-}
-
-// ServiceOrderRequest represents the request to create a service order
-type ServiceOrderRequest struct {
-	Email           string      `json:"email"`
-	FullName        string      `json:"full_name"`
-	BusinessName    string      `json:"business_name"`
-	Phone           string      `json:"phone"`
-	WhatsappPhone   string      `json:"whatsapp_phone,omitempty"`
-	CompanySize     string      `json:"company_size"` // sole_proprietor, 1-10, 11-50, 51-200, 201-1000, 1000+
-	ReferralSource  string      `json:"referral_source"`
-	ServiceType     string      `json:"service_type"` // solar, security, both
-	Appliances      []Appliance `json:"appliances"`
-	DeliveryAddress string      `json:"delivery_address"`
-	DeliveryCity    string      `json:"delivery_city"`
-	DeliveryState   string      `json:"delivery_state"`
-	DeliveryCountry string      `json:"delivery_country"`
-
-	Notes   string `json:"notes,omitempty"`
-	IsPromo bool   `json:"is_promo"`
-}
-
-// ServiceOrderResponse represents the response after creating an order
-type ServiceOrderResponse struct {
-	OrderNumber     string      `json:"order_number"`
-	Email           string      `json:"email"`
-	FullName        string      `json:"full_name"`
-	BusinessName    string      `json:"business_name"`
-	Phone           string      `json:"phone"`
-	WhatsappPhone   string      `json:"whatsapp_phone,omitempty"`
-	CompanySize     string      `json:"company_size"`
-	ReferralSource  string      `json:"referral_source"`
-	ServiceType     string      `json:"service_type"`
-	Appliances      []Appliance `json:"appliances"`
-	DeliveryAddress string      `json:"delivery_address"`
-	TransportFee    float64     `json:"transport_fee"`
-	PromoApplied    bool        `json:"promo_applied"`
-	Status          string      `json:"status"`
-	Notes           string      `json:"notes,omitempty"`
-	CreatedAt       string      `json:"created_at"`
-	Message         string      `json:"message,omitempty"`
 }
 
 type Service struct {
@@ -122,17 +73,13 @@ const (
 	QuoteStatusExpired  QuoteStatus = "expired"
 )
 
-type QuoteItem struct {
-	Name        string `json:"name"`
-	Cost        string `json:"cost"`
-	Description string `json:"description"`
-	Quantity    int    `json:"quantity"`
-}
 type Quote struct {
 	ID             uuid.UUID   `json:"id"`
+	UserID         uuid.UUID   `json:"user_id"`
 	QuoteRequestID uuid.UUID   `json:"quote_request_id"`
 	Amount         string      `json:"amount"`
-	Breakdown      []QuoteItem `json:"breakdown"`
+	Breakdown      []Item      `json:"breakdown"`
+	Discounts      []Discount  `json:"discounts"`
 	Notes          string      `json:"notes"`
 	Status         QuoteStatus `json:"status"`
 	ExpiresAt      time.Time   `json:"expires_at"`
@@ -182,9 +129,11 @@ type GetUserQuoteRequestsRow struct {
 
 type GetUserQuotesWithServiceRow struct {
 	ID             uuid.UUID   `json:"id"`
+	UserID         uuid.UUID   `json:"user_id"`
 	QuoteRequestID uuid.UUID   `json:"quote_request_id"`
 	Amount         string      `json:"amount"`
-	Breakdown      []QuoteItem `json:"breakdown"`
+	Breakdown      []Item      `json:"breakdown"`
+	Discounts      []Discount  `json:"discounts"`
 	Notes          string      `json:"notes"`
 	Status         QuoteStatus `json:"status"`
 	CreatedAt      time.Time   `json:"created_at"`
@@ -193,4 +142,48 @@ type GetUserQuotesWithServiceRow struct {
 	ServiceIcon    string      `json:"service_icon"`
 	ServiceName    string      `json:"service_name"`
 	ServiceID      uuid.UUID   `json:"service_id"`
+}
+
+// invoice
+type Item struct {
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Quantity    int     `json:"quantity"`
+	Price       float64 `json:"price"`
+}
+
+type Discount struct {
+	Name   string  `json:"name"`
+	Amount float64 `json:"amount"`
+}
+
+type DBItem struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Quantity    int    `json:"quantity"`
+	Price       string `json:"price"`
+}
+
+type DBDiscount struct {
+	Name   string `json:"name"`
+	Amount string `json:"amount"`
+}
+
+type Invoice struct {
+	ID            uuid.UUID    `json:"id"`
+	UserId        uuid.UUID    `json:"user_id"`
+	QuoteID       uuid.UUID    `json:"quote_id"`
+	CustomerName  string       `json:"customer_name"`
+	InvoiceNumber string       `json:"invoice_number"`
+	CustomerEmail string       `json:"customer_email"`
+	CustomerPhone string       `json:"customer_phone"`
+	Items         []Item       `json:"items"`
+	Discounts     []Discount   `json:"discounts"`
+	Total         float64      `json:"total"`
+	Notes         string       `json:"notes"`
+	Status        string       `json:"status"`
+	CreatedAt     time.Time    `json:"created_at"`
+	DeletedAt     sql.NullTime `json:"deleted_at"`
+
+	UpdatedAt time.Time `json:"updated_at"`
 }

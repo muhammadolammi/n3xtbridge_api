@@ -1,6 +1,6 @@
 -- name: CreateQuote :one
-INSERT INTO quotes (quote_request_id, amount, breakdown, notes, expires_at)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO quotes (quote_request_id,user_id, amount, breakdown,discounts, notes, expires_at)
+VALUES ($1, $2, $3, $4, $5,$6,$7)
 RETURNING *; 
 
 -- name: GetUserQuotesWithService :many
@@ -13,7 +13,7 @@ SELECT
 FROM quotes q 
 JOIN quote_requests qr ON q.quote_request_id = qr.id
 JOIN services s ON qr.service_id = s.id
-WHERE qr.user_id = $1 AND q.status= 'sent'
+WHERE qr.user_id = $1 AND  q.status IN ('sent', 'accepted', 'declined')
 ORDER BY q.created_at DESC
 LIMIT $2 OFFSET $3;
 
@@ -50,3 +50,7 @@ WHERE qr.user_id = $1;
 -- name: UpdateQuoteStatus :exec
 UPDATE quotes SET status = $2, updated_at = NOW() WHERE id = $1;
 
+
+-- name: GetQuote :one
+SELECT * FROM quotes
+WHERE id=$1;

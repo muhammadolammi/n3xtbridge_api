@@ -19,6 +19,7 @@ func (cfg *Config) CreateQuoteRequestHandler(w http.ResponseWriter, r *http.Requ
 	input := struct {
 		UserID      uuid.UUID `json:"user_id"`
 		ServiceID   uuid.UUID `json:"service_id"`
+		ServiceName string    `json:"service_name"`
 		Description string    `json:"description"`
 		Attachments []string  `json:"attachments"`
 	}{}
@@ -31,8 +32,19 @@ func (cfg *Config) CreateQuoteRequestHandler(w http.ResponseWriter, r *http.Requ
 		helpers.RespondWithError(w, http.StatusBadRequest, "invalid request, user_id, service_id, and description can't be empty ")
 		return
 	}
-	quoteRequest, err := cfg.DB.CreateQuoteRequest(r.Context(), database.CreateQuoteRequestParams{
+	user, err := cfg.DBQueries.GetUserByID(r.Context(), input.UserID)
+	if err != nil {
+		log.Println("DB ERROR error getting user: " + err.Error())
+		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting user")
+		return
+
+	}
+	if user.Role == "admin" {
+		helpers.RespondWithError(w, http.StatusBadRequest, "admin should not be creating request")
+	}
+	quoteRequest, err := cfg.DBQueries.CreateQuoteRequest(r.Context(), database.CreateQuoteRequestParams{
 		UserID:      input.UserID,
+		ServiceName: input.ServiceName,
 		ServiceID:   input.ServiceID,
 		Description: input.Description,
 		Attachments: input.Attachments,
@@ -68,7 +80,7 @@ func (cfg *Config) GetUserQuoteRequestsHandler(w http.ResponseWriter, r *http.Re
 		offset = 0 // Default
 	}
 
-	qrs, err := cfg.DB.GetUserQuoteRequests(r.Context(), database.GetUserQuoteRequestsParams{
+	qrs, err := cfg.DBQueries.GetUserQuoteRequests(r.Context(), database.GetUserQuoteRequestsParams{
 		Limit:  int32(limit),
 		Offset: int32(offset),
 		UserID: user.ID,
@@ -79,7 +91,7 @@ func (cfg *Config) GetUserQuoteRequestsHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	count, err := cfg.DB.CountUserQuoteRequests(r.Context(), user.ID)
+	count, err := cfg.DBQueries.CountUserQuoteRequests(r.Context(), user.ID)
 	if err != nil {
 		log.Println("DB ERROR error getting user quote requests count: " + err.Error())
 		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting user quote requests  count")
@@ -109,7 +121,7 @@ func (cfg *Config) AdminGetQuoteRequestsHandler(w http.ResponseWriter, r *http.R
 		offset = 0 // Default
 	}
 
-	qrs, err := cfg.DB.GetQuoteRequests(r.Context(), database.GetQuoteRequestsParams{
+	qrs, err := cfg.DBQueries.GetQuoteRequests(r.Context(), database.GetQuoteRequestsParams{
 		Limit:  int32(limit),
 		Offset: int32(offset),
 	})
@@ -119,7 +131,7 @@ func (cfg *Config) AdminGetQuoteRequestsHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	count, err := cfg.DB.CountQuoteRequests(r.Context())
+	count, err := cfg.DBQueries.CountQuoteRequests(r.Context())
 	if err != nil {
 		log.Println("DB ERROR error getting user quoute requests count: " + err.Error())
 		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting user quote requests  count")
@@ -140,15 +152,18 @@ func (cfg *Config) AdminGetQuoteRequestsHandler(w http.ResponseWriter, r *http.R
 func (cfg *Config) AdminCreateQuoteHandler(w http.ResponseWriter, r *http.Request) {
 
 	input := struct {
-		QuoteRequestID uuid.UUID   `json:"quote_request_id"`
-		Amount         string      `json:"amount"`
-		Breakdown      []QuoteItem `json:"breakdown"`
-		Notes          string      `json:"notes"`
-		ExpiresAt      time.Time   `json:"expires_at"`
+		UserID         uuid.UUID    `json:"user_id"`
+		QuoteRequestID uuid.UUID    `json:"quote_request_id"`
+		Amount         string       `json:"amount"`
+		Breakdown      []DBItem     `json:"breakdown"`
+		Discounts      []DBDiscount `json:"discounts"`
+		Notes          string       `json:"notes"`
+		ExpiresAt      time.Time    `json:"expires_at"`
 	}{}
 
 	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
+		log.Println(err)
 		helpers.RespondWithError(w, http.StatusBadRequest, "Invalid request payload: "+err.Error())
 		return
 	}
@@ -156,6 +171,11 @@ func (cfg *Config) AdminCreateQuoteHandler(w http.ResponseWriter, r *http.Reques
 	// 1. Precise Validation
 	if input.QuoteRequestID == uuid.Nil {
 		helpers.RespondWithError(w, http.StatusBadRequest, "Quote Request ID is required")
+		return
+	}
+	if input.UserID == uuid.Nil {
+
+		helpers.RespondWithError(w, http.StatusBadRequest, "User  ID is required")
 		return
 	}
 	if input.Amount == "" {
@@ -177,12 +197,20 @@ func (cfg *Config) AdminCreateQuoteHandler(w http.ResponseWriter, r *http.Reques
 		helpers.RespondWithError(w, http.StatusInternalServerError, "Error processing breakdown data")
 		return
 	}
+	// 2. Marshal Discounts to JSON for the DB
+	discountsJSON, err := json.Marshal(input.Discounts)
+	if err != nil {
+		helpers.RespondWithError(w, http.StatusInternalServerError, "Error processing discounts data")
+		return
+	}
 
 	// 3. Execute DB Insert
-	dbQuote, err := cfg.DB.CreateQuote(r.Context(), database.CreateQuoteParams{
+	dbQuote, err := cfg.DBQueries.CreateQuote(r.Context(), database.CreateQuoteParams{
 		QuoteRequestID: input.QuoteRequestID,
+		UserID:         input.UserID,
 		Amount:         input.Amount,
 		Breakdown:      breakdownJSON, // sqlc expects json.RawMessage/[]byte
+		Discounts:      discountsJSON,
 		Notes:          input.Notes,
 		ExpiresAt:      input.ExpiresAt,
 	})
@@ -199,7 +227,7 @@ func (cfg *Config) AdminCreateQuoteHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	// 4. Update QuoteRequest Status to 'quoted' automatically
-	_ = cfg.DB.UpdateQuoteRequestStatus(r.Context(), database.UpdateQuoteRequestStatusParams{
+	_ = cfg.DBQueries.UpdateQuoteRequestStatus(r.Context(), database.UpdateQuoteRequestStatusParams{
 		ID:     input.QuoteRequestID,
 		Status: database.QuoteRequestStatusQuoted,
 	})
@@ -219,6 +247,7 @@ func (cfg *Config) AdminUpdateQuoteStatusHandler(w http.ResponseWriter, r *http.
 		helpers.RespondWithError(w, http.StatusBadRequest, "error parsing id")
 		return
 	}
+
 	input := struct {
 		Status string `json:"status"`
 	}{}
@@ -234,10 +263,11 @@ func (cfg *Config) AdminUpdateQuoteStatusHandler(w http.ResponseWriter, r *http.
 		return
 	}
 	validStatuses := map[string]bool{
-		"draft":     true,
-		"sent":      true,
-		"accepted":  true,
-		"declined":  true,
+		"draft": true,
+		"sent":  true,
+		// admin and staff should not be accepting or declining
+		// "accepted":  true,
+		// "declined":  true,
 		"expired":   true,
 		"in-review": true,
 	}
@@ -246,7 +276,20 @@ func (cfg *Config) AdminUpdateQuoteStatusHandler(w http.ResponseWriter, r *http.
 		helpers.RespondWithError(w, http.StatusBadRequest, "Invalid quote status provided")
 		return
 	}
-	err = cfg.DB.UpdateQuoteStatus(r.Context(), database.UpdateQuoteStatusParams{
+	quote, err := cfg.DBQueries.GetQuote(r.Context(), parsedId)
+	if err != nil {
+		log.Println("DB ERROR error getting quote  " + err.Error())
+		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting quote")
+		return
+
+	}
+	if quote.Status == "declined" {
+		helpers.RespondWithError(w, http.StatusBadGateway, "user rejected quote already")
+		return
+
+	}
+
+	err = cfg.DBQueries.UpdateQuoteStatus(r.Context(), database.UpdateQuoteStatusParams{
 		ID:     parsedId,
 		Status: database.QuoteStatus(input.Status),
 	})
@@ -271,7 +314,7 @@ func (cfg *Config) AdminGetQuotesHandler(w http.ResponseWriter, r *http.Request)
 		offset = 0 // Default
 	}
 
-	qs, err := cfg.DB.GetQuotes(r.Context(), database.GetQuotesParams{
+	qs, err := cfg.DBQueries.GetQuotes(r.Context(), database.GetQuotesParams{
 		Limit:  int32(limit),
 		Offset: int32(offset),
 	})
@@ -281,7 +324,7 @@ func (cfg *Config) AdminGetQuotesHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	count, err := cfg.DB.CountQuotes(r.Context())
+	count, err := cfg.DBQueries.CountQuotes(r.Context())
 	if err != nil {
 		log.Println("DB ERROR error getting  quotes requests count: " + err.Error())
 		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting  quotes  count")
@@ -301,6 +344,7 @@ func (cfg *Config) AdminGetQuotesHandler(w http.ResponseWriter, r *http.Request)
 				QuoteRequestID: q.QuoteRequestID,
 				Amount:         q.Amount,
 				Breakdown:      q.Breakdown,
+				Discounts:      q.Discounts,
 				Notes:          q.Notes,
 				Status:         q.Status,
 				ExpiresAt:      q.ExpiresAt,
@@ -351,7 +395,7 @@ func (cfg *Config) UpdateUserQuoteRequestDescriptionHandler(w http.ResponseWrite
 		helpers.RespondWithError(w, http.StatusBadRequest, "invalid request, description, icon and image can't be empty ")
 		return
 	}
-	qr, err := cfg.DB.GetQuoteRequest(context.Background(), parsedId)
+	qr, err := cfg.DBQueries.GetQuoteRequest(context.Background(), parsedId)
 	if err != nil {
 		log.Println("DB ERROR error getting qr: " + err.Error())
 		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting qr ")
@@ -362,7 +406,7 @@ func (cfg *Config) UpdateUserQuoteRequestDescriptionHandler(w http.ResponseWrite
 		return
 
 	}
-	err = cfg.DB.UpdateQuoteRequestDescription(r.Context(), database.UpdateQuoteRequestDescriptionParams{
+	err = cfg.DBQueries.UpdateQuoteRequestDescription(r.Context(), database.UpdateQuoteRequestDescriptionParams{
 		ID:          qr.ID,
 		Description: input.Description,
 	})
@@ -394,7 +438,7 @@ func (cfg *Config) GetUserQuotesWithServiceHandler(w http.ResponseWriter, r *htt
 		offset = 0 // Default
 	}
 
-	qs, err := cfg.DB.GetUserQuotesWithService(r.Context(), database.GetUserQuotesWithServiceParams{
+	qs, err := cfg.DBQueries.GetUserQuotesWithService(r.Context(), database.GetUserQuotesWithServiceParams{
 		Limit:  int32(limit),
 		Offset: int32(offset),
 		UserID: user.ID,
@@ -405,7 +449,7 @@ func (cfg *Config) GetUserQuotesWithServiceHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	count, err := cfg.DB.CountUserQuotes(r.Context(), user.ID)
+	count, err := cfg.DBQueries.CountUserQuotes(r.Context(), user.ID)
 	if err != nil {
 		log.Println("DB ERROR error getting user quotes count: " + err.Error())
 		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting user quotes  count")
@@ -443,7 +487,7 @@ func (cfg *Config) GetUserQuoteWithServiceHandler(w http.ResponseWriter, r *http
 
 	// You can remove limit/offset logic here, it's not used for a single GET
 
-	q, err := cfg.DB.GetUserQuoteWithService(r.Context(), database.GetUserQuoteWithServiceParams{
+	q, err := cfg.DBQueries.GetUserQuoteWithService(r.Context(), database.GetUserQuoteWithServiceParams{
 		ID:     parsedId,
 		UserID: user.ID,
 	})
@@ -475,4 +519,110 @@ func (cfg *Config) GetUserQuoteWithServiceHandler(w http.ResponseWriter, r *http
 	}
 
 	helpers.RespondWithJson(w, http.StatusOK, res)
+}
+
+func (cfg *Config) CustomerUpdateQuoteStatusHandler(w http.ResponseWriter, r *http.Request) {
+	quoteId := chi.URLParam(r, "id")
+	if quoteId == "" {
+		helpers.RespondWithError(w, http.StatusBadRequest, "")
+		return
+	}
+
+	parsedId, err := uuid.Parse(quoteId)
+	if err != nil {
+		helpers.RespondWithError(w, http.StatusBadRequest, "error parsing id")
+		return
+	}
+
+	input := struct {
+		Status string `json:"status"`
+	}{}
+
+	err = json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		helpers.RespondWithError(w, http.StatusBadRequest, "Invalid request payload: "+err.Error())
+		return
+	}
+
+	if input.Status == "" {
+		helpers.RespondWithError(w, http.StatusBadRequest, "Amount cannot be empty")
+		return
+	}
+	validStatuses := map[string]bool{
+		// "draft": true,
+		// "sent":  true,
+		// user can only accept or decline
+		"accepted": true,
+		"declined": true,
+		// "expired":   true,
+		// "in-review": true,
+	}
+
+	if !validStatuses[strings.ToLower(input.Status)] {
+		helpers.RespondWithError(w, http.StatusBadRequest, "Invalid quote status provided")
+		return
+	}
+	// validation
+
+	user, httpStatus, err := cfg.getUserFromReq(r)
+	if err != nil {
+		helpers.RespondWithError(w, httpStatus, err.Error())
+		return
+	}
+	quote, err := cfg.DBQueries.GetQuote(r.Context(), parsedId)
+	if err != nil {
+		log.Println("DB ERROR error getting quote  " + err.Error())
+		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting quote")
+		return
+
+	}
+	//  make sure they own the quote request of the quote and status is accept or reject
+	if input.Status != "accepted" && input.Status != "declined" {
+		helpers.RespondWithError(w, http.StatusUnauthorized, "unauthorized action")
+		return
+	}
+	qr, err := cfg.DBQueries.GetQuoteRequest(r.Context(), quote.QuoteRequestID)
+	if err != nil {
+		log.Println("DB ERROR error getting quote request in validating user request to update quote status : " + err.Error())
+		helpers.RespondWithError(w, http.StatusInternalServerError, "error validating user")
+		return
+
+	}
+	if user.ID != qr.UserID {
+		helpers.RespondWithError(w, http.StatusUnauthorized, "unauthorized action")
+		return
+
+	}
+
+	if input.Status == "accepted" {
+
+		err = helpers.AcceptQuoteAndCreateInvoice(r.Context(), helpers.AcceptQuoteAndCreateInvoiceParams{
+			Quote:         &quote,
+			Customer:      &user,
+			Db:            cfg.DBConn,
+			Queries:       cfg.DBQueries,
+			InvoiceNumber: GenerateInvoiceNumber(),
+			AdminID:       quote.UserID,
+		})
+		if err != nil {
+			log.Println("DB ERROR error accepting quote and generating quote: " + err.Error())
+			helpers.RespondWithError(w, http.StatusInternalServerError, "error updating quote status")
+			return
+		}
+
+		helpers.RespondWithJson(w, http.StatusOK, "quote status updated")
+		return
+	}
+
+	err = cfg.DBQueries.UpdateQuoteStatus(r.Context(), database.UpdateQuoteStatusParams{
+		ID:     parsedId,
+		Status: database.QuoteStatus(input.Status),
+	})
+	if err != nil {
+		log.Println("DB ERROR error updating quote status: " + err.Error())
+		helpers.RespondWithError(w, http.StatusInternalServerError, "error updating quote status")
+		return
+	}
+
+	helpers.RespondWithJson(w, http.StatusOK, "quote status updated")
 }
