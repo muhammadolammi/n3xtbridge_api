@@ -11,7 +11,7 @@ import (
 
 type Config struct {
 	DBURL                      string
-	DB                         *database.Queries
+	DBQueries                  *database.Queries
 	DBConn                     *sql.DB
 	ClientApiKey               string
 	JwtSecret                  string
@@ -122,22 +122,18 @@ const (
 	QuoteStatusExpired  QuoteStatus = "expired"
 )
 
-type QuoteItem struct {
-	Name        string `json:"name"`
-	Cost        string `json:"cost"`
-	Description string `json:"description"`
-	Quantity    int    `json:"quantity"`
-}
 type Quote struct {
-	ID             uuid.UUID   `json:"id"`
-	QuoteRequestID uuid.UUID   `json:"quote_request_id"`
-	Amount         string      `json:"amount"`
-	Breakdown      []QuoteItem `json:"breakdown"`
-	Notes          string      `json:"notes"`
-	Status         QuoteStatus `json:"status"`
-	ExpiresAt      time.Time   `json:"expires_at"`
-	CreatedAt      time.Time   `json:"created_at"`
-	UpdatedAt      time.Time   `json:"updated_at"`
+	ID             uuid.UUID         `json:"id"`
+	UserID         uuid.UUID         `json:"user_id"`
+	QuoteRequestID uuid.UUID         `json:"quote_request_id"`
+	Amount         string            `json:"amount"`
+	Breakdown      []InvoiceItem     `json:"breakdown"`
+	Discounts      []InvoiceDiscount `json:"discounts"`
+	Notes          string            `json:"notes"`
+	Status         QuoteStatus       `json:"status"`
+	ExpiresAt      time.Time         `json:"expires_at"`
+	CreatedAt      time.Time         `json:"created_at"`
+	UpdatedAt      time.Time         `json:"updated_at"`
 }
 
 type QuoteRequest struct {
@@ -181,16 +177,50 @@ type GetUserQuoteRequestsRow struct {
 }
 
 type GetUserQuotesWithServiceRow struct {
-	ID             uuid.UUID   `json:"id"`
-	QuoteRequestID uuid.UUID   `json:"quote_request_id"`
-	Amount         string      `json:"amount"`
-	Breakdown      []QuoteItem `json:"breakdown"`
-	Notes          string      `json:"notes"`
-	Status         QuoteStatus `json:"status"`
-	CreatedAt      time.Time   `json:"created_at"`
-	UpdatedAt      time.Time   `json:"updated_at"`
-	ExpiresAt      time.Time   `json:"expires_at"`
-	ServiceIcon    string      `json:"service_icon"`
-	ServiceName    string      `json:"service_name"`
-	ServiceID      uuid.UUID   `json:"service_id"`
+	ID             uuid.UUID         `json:"id"`
+	UserID         uuid.UUID         `json:"user_id"`
+	QuoteRequestID uuid.UUID         `json:"quote_request_id"`
+	Amount         string            `json:"amount"`
+	Breakdown      []InvoiceItem     `json:"breakdown"`
+	Discounts      []InvoiceDiscount `json:"discounts"`
+	Notes          string            `json:"notes"`
+	Status         QuoteStatus       `json:"status"`
+	CreatedAt      time.Time         `json:"created_at"`
+	UpdatedAt      time.Time         `json:"updated_at"`
+	ExpiresAt      time.Time         `json:"expires_at"`
+	ServiceIcon    string            `json:"service_icon"`
+	ServiceName    string            `json:"service_name"`
+	ServiceID      uuid.UUID         `json:"service_id"`
+}
+
+// invoice
+type InvoiceItem struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Quantity    int    `json:"quantity"`
+	Price       string `json:"price"`
+}
+
+type InvoiceDiscount struct {
+	Name   string `json:"name"`
+	Amount string `json:"amount"`
+}
+
+type Invoice struct {
+	ID            uuid.UUID         `json:"id"`
+	UserId        uuid.UUID         `json:"user_id"`
+	QuoteID       uuid.UUID         `json:"quote_id"`
+	CustomerName  string            `json:"customer_name"`
+	InvoiceNumber string            `json:"invoice_number"`
+	CustomerEmail string            `json:"customer_email"`
+	CustomerPhone string            `json:"customer_phone"`
+	Items         []InvoiceItem     `json:"items"`
+	Discounts     []InvoiceDiscount `json:"discounts"`
+	Total         float64           `json:"total"`
+	Notes         string            `json:"notes"`
+	Status        string            `json:"status"`
+	CreatedAt     time.Time         `json:"created_at"`
+	DeletedAt     sql.NullTime      `json:"deleted_at"`
+
+	UpdatedAt time.Time `json:"updated_at"`
 }

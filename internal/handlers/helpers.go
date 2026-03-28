@@ -22,7 +22,7 @@ func (cfg *Config) getUserFromReq(r *http.Request) (database.User, int, error) {
 		return database.User{}, http.StatusInternalServerError, errors.New("error parsing user id")
 
 	}
-	user, err := cfg.DB.GetUserByID(r.Context(), parsedID)
+	user, err := cfg.DBQueries.GetUserByID(r.Context(), parsedID)
 	if err != nil {
 		log.Println("DB ERROR error getting invoice: " + err.Error())
 		return database.User{}, http.StatusUnauthorized, errors.New("user not authenticated")

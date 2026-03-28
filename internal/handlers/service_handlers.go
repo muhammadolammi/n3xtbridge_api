@@ -34,7 +34,7 @@ func (cfg *Config) CreateServiceeHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	service, err := cfg.DB.CreateService(r.Context(), database.CreateServiceParams{
+	service, err := cfg.DBQueries.CreateService(r.Context(), database.CreateServiceParams{
 		Name:        input.Name,
 		Description: input.Description,
 		Category:    input.Category,
@@ -65,7 +65,7 @@ func (cfg *Config) GetActiveServicesHandler(w http.ResponseWriter, r *http.Reque
 		offset = 0 // Default
 	}
 
-	services, err := cfg.DB.GetActiveServices(r.Context(), database.GetActiveServicesParams{
+	services, err := cfg.DBQueries.GetActiveServices(r.Context(), database.GetActiveServicesParams{
 		Limit:  int32(limit),
 		Offset: int32(offset),
 	})
@@ -74,7 +74,7 @@ func (cfg *Config) GetActiveServicesHandler(w http.ResponseWriter, r *http.Reque
 		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting services")
 		return
 	}
-	count, err := cfg.DB.CountActiveServices(r.Context())
+	count, err := cfg.DBQueries.CountActiveServices(r.Context())
 	if err != nil {
 		log.Println("DB ERROR error getting active services count: " + err.Error())
 		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting active services count")
@@ -104,7 +104,7 @@ func (cfg *Config) AdminListAllServicesHandler(w http.ResponseWriter, r *http.Re
 		offset = 0 // Default
 	}
 
-	services, err := cfg.DB.GetServices(r.Context(), database.GetServicesParams{
+	services, err := cfg.DBQueries.GetServices(r.Context(), database.GetServicesParams{
 		Limit:  int32(limit),
 		Offset: int32(offset),
 	})
@@ -113,7 +113,7 @@ func (cfg *Config) AdminListAllServicesHandler(w http.ResponseWriter, r *http.Re
 		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting services")
 		return
 	}
-	count, err := cfg.DB.CountServices(r.Context())
+	count, err := cfg.DBQueries.CountServices(r.Context())
 	if err != nil {
 		log.Println("DB ERROR error getting active services count: " + err.Error())
 		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting active services count")
@@ -154,14 +154,14 @@ func (cfg *Config) AdminUpdateServiceStatusHandler(w http.ResponseWriter, r *htt
 		helpers.RespondWithError(w, http.StatusBadRequest, "invalid request, name, category, description, icon and image can't be empty ")
 		return
 	}
-	service, err := cfg.DB.GetService(context.Background(), parsedId)
+	service, err := cfg.DBQueries.GetService(context.Background(), parsedId)
 	if err != nil {
 		log.Println("DB ERROR error getting service: " + err.Error())
 		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting service ")
 		return
 	}
 
-	err = cfg.DB.UpdateServiceStatus(r.Context(), database.UpdateServiceStatusParams{
+	err = cfg.DBQueries.UpdateServiceStatus(r.Context(), database.UpdateServiceStatusParams{
 		ID:       service.ID,
 		IsActive: *input.IsActive,
 	})

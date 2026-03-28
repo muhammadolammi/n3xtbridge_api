@@ -46,7 +46,7 @@ func (cfg *Config) SignupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if user already exists
-	existingUser, _ := cfg.DB.GetUserByEmail(context.Background(), input.Email)
+	existingUser, _ := cfg.DBQueries.GetUserByEmail(context.Background(), input.Email)
 	if existingUser.ID != uuid.Nil {
 		helpers.RespondWithError(w, http.StatusConflict, "user with this email already exists")
 		return
@@ -72,7 +72,7 @@ func (cfg *Config) SignupHandler(w http.ResponseWriter, r *http.Request) {
 		Role:         "user", // default role
 	}
 
-	_, err = cfg.DB.CreateUser(context.Background(), params)
+	_, err = cfg.DBQueries.CreateUser(context.Background(), params)
 	if err != nil {
 		log.Println("failed to create user: " + err.Error())
 		helpers.RespondWithError(w, http.StatusInternalServerError, "failed to create user: ")

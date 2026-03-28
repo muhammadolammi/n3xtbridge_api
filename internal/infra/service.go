@@ -49,8 +49,9 @@ func ConnectDB(ctx context.Context, cfg *handlers.Config) {
 		db.SetMaxOpenConns(5)
 		db.SetMaxIdleConns(2)
 		db.SetConnMaxLifetime(5 * time.Minute)
-		cfg.DB = database.New(db)
-		provider := auth.NewProvider(cfg.DB)
+		cfg.DBConn = db
+		cfg.DBQueries = database.New(db)
+		provider := auth.NewProvider(cfg.DBQueries)
 		env := os.Getenv("ENV")
 		isCloudRun := os.Getenv("K_SERVICE") // This is always present on Google Cloud Run
 		isProd := (env == "production" || env == "deployment" || isCloudRun != "")

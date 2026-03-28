@@ -12,7 +12,95 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
+
+type PaymentStatus string
+
+const (
+	PaymentStatusPending    PaymentStatus = "pending"
+	PaymentStatusProcessing PaymentStatus = "processing"
+	PaymentStatusSuccess    PaymentStatus = "success"
+	PaymentStatusFailed     PaymentStatus = "failed"
+	PaymentStatusReversed   PaymentStatus = "reversed"
+)
+
+func (e *PaymentStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PaymentStatus(s)
+	case string:
+		*e = PaymentStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PaymentStatus: %T", src)
+	}
+	return nil
+}
+
+type NullPaymentStatus struct {
+	PaymentStatus PaymentStatus
+	Valid         bool // Valid is true if PaymentStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPaymentStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.PaymentStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PaymentStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPaymentStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PaymentStatus), nil
+}
+
+type ProviderType string
+
+const (
+	ProviderTypePaystack       ProviderType = "paystack"
+	ProviderTypeManualTransfer ProviderType = "manual_transfer"
+)
+
+func (e *ProviderType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ProviderType(s)
+	case string:
+		*e = ProviderType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ProviderType: %T", src)
+	}
+	return nil
+}
+
+type NullProviderType struct {
+	ProviderType ProviderType
+	Valid        bool // Valid is true if ProviderType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullProviderType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ProviderType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ProviderType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullProviderType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ProviderType), nil
+}
 
 type QuoteRequestStatus string
 
@@ -118,6 +206,22 @@ type Invoice struct {
 	UpdatedAt     time.Time
 	UserID        uuid.UUID
 	Status        string
+	QuoteID       uuid.NullUUID
+	DeletedAt     sql.NullTime
+}
+
+type Payment struct {
+	ID         uuid.UUID
+	InvoiceID  uuid.UUID
+	Amount     string
+	Currency   sql.NullString
+	Provider   ProviderType
+	Status     PaymentStatus
+	Reference  string
+	ExternalID sql.NullString
+	Metadata   pqtype.NullRawMessage
+	CreatedAt  sql.NullTime
+	UpdatedAt  sql.NullTime
 }
 
 type Quote struct {
@@ -130,17 +234,21 @@ type Quote struct {
 	ExpiresAt      time.Time
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	Discounts      json.RawMessage
+	UserID         uuid.UUID
 }
 
 type QuoteRequest struct {
 	ID          uuid.UUID
 	UserID      uuid.UUID
 	ServiceID   uuid.UUID
+	ServiceName string
 	Description string
 	Attachments []string
 	Status      QuoteRequestStatus
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+	Budget      sql.NullString
 }
 
 type RefreshToken struct {

@@ -13,22 +13,9 @@ CREATE TABLE IF NOT EXISTS invoices (
     discounts JSONB NOT NULL,
     created_at TIMESTAMP  WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    user_id UUID NOT NULL,
-    CONSTRAINT fk_refresh_tokens_user
-        FOREIGN KEY (user_id)
-        REFERENCES users(id)
-        ON DELETE CASCADE
-);
+    user_id UUID NOT NULL REFERENCES users(id)
 
--- Create items table
--- CREATE TABLE IF NOT EXISTS items (
---     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
---     invoice_id UUID REFERENCES invoices(id) ON DELETE CASCADE,
---     name VARCHAR(255) NOT NULL,
---     quantity INTEGER NOT NULL CHECK (quantity > 0),
---     price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
---     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
--- );
+);
 
 
 

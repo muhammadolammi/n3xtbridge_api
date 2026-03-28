@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/muhammadolammi/n3xtbridge_api/internal/database"
-	"github.com/muhammadolammi/n3xtbridge_api/internal/invoice"
 )
 
 func dbUserToUser(dbUser database.User) User {
@@ -27,22 +27,23 @@ func dbUserToUser(dbUser database.User) User {
 
 }
 
-func dbInvoicetoInvoice(dbInvoice database.Invoice) invoice.Invoice {
-	items := []invoice.Item{}
+func dbInvoicetoInvoice(dbInvoice database.Invoice) Invoice {
+	items := []InvoiceItem{}
 	err := json.Unmarshal(dbInvoice.Items, &items)
 	if err != nil {
 		log.Printf("Error unmarshaling items for invoice %s: %v", dbInvoice.ID, err)
 
 	}
-	discounts := []invoice.Discount{}
+	discounts := []InvoiceDiscount{}
 	err = json.Unmarshal(dbInvoice.Discounts, &discounts)
 	if err != nil {
 
 		log.Printf("Error unmarshaling discounts for invoice %s: %v", dbInvoice.ID, err)
 	}
 	total, _ := strconv.ParseFloat(dbInvoice.Total, 64)
-	return invoice.Invoice{
+	return Invoice{
 		ID:            dbInvoice.ID,
+		QuoteID:       dbInvoice.QuoteID.UUID,
 		InvoiceNumber: dbInvoice.InvoiceNumber,
 		UserId:        dbInvoice.UserID,
 		CustomerName:  dbInvoice.CustomerName,
@@ -55,12 +56,13 @@ func dbInvoicetoInvoice(dbInvoice database.Invoice) invoice.Invoice {
 		Status:        dbInvoice.Status,
 		UpdatedAt:     dbInvoice.UpdatedAt,
 		CreatedAt:     dbInvoice.CreatedAt,
+		DeletedAt:     dbInvoice.DeletedAt,
 	}
 
 }
 
-func dbInvoicestoInvoices(dbInvoices []database.Invoice) []invoice.Invoice {
-	res := []invoice.Invoice{}
+func dbInvoicestoInvoices(dbInvoices []database.Invoice) []Invoice {
+	res := []Invoice{}
 	for _, dbInvoice := range dbInvoices {
 		res = append(res, dbInvoicetoInvoice(dbInvoice))
 	}
@@ -116,18 +118,26 @@ func DbQuoteRequestsToQuoteRequests(dbReqs []database.QuoteRequest) []QuoteReque
 func DbQuoteToQuote(dbQuote database.Quote) Quote {
 	// Parse the decimal string to float64 for the frontend
 	amount, _ := strconv.ParseFloat(dbQuote.Amount, 64)
-	breakDowns := []QuoteItem{}
+	breakDowns := []InvoiceItem{}
 	err := json.Unmarshal(dbQuote.Breakdown, &breakDowns)
 	if err != nil {
 
 		log.Printf("Error unmarshaling breakdowns for quote %s: %v", dbQuote.ID, err)
 	}
+	discounts := []InvoiceDiscount{}
+	err = json.Unmarshal(dbQuote.Discounts, &discounts)
+	if err != nil {
+
+		log.Printf("Error unmarshaling discounts for quote %s: %v", dbQuote.ID, err)
+	}
 
 	return Quote{
 		ID:             dbQuote.ID,
+		UserID:         dbQuote.UserID,
 		QuoteRequestID: dbQuote.QuoteRequestID,
 		Amount:         fmt.Sprintf("%.2f", amount),
 		Breakdown:      breakDowns,
+		Discounts:      discounts,
 		Notes:          dbQuote.Notes,
 		Status:         QuoteStatus(dbQuote.Status),
 		ExpiresAt:      dbQuote.ExpiresAt,
@@ -195,18 +205,25 @@ func DbUserQuoteRequestRowsToUserQuoteRequestsRow(dbRows []database.GetUserQuote
 func DbUserQuotesWithServiceRowToUserQuotesWithServiceRow(dbQuote database.GetUserQuotesWithServiceRow) GetUserQuotesWithServiceRow {
 	// Parse the decimal string to float64 for the frontend
 	amount, _ := strconv.ParseFloat(dbQuote.Amount, 64)
-	breakDowns := []QuoteItem{}
+	breakDowns := []InvoiceItem{}
 	err := json.Unmarshal(dbQuote.Breakdown, &breakDowns)
 	if err != nil {
 
 		log.Printf("Error unmarshaling breakdowns for quote %s: %v", dbQuote.ID, err)
 	}
+	discounts := []InvoiceDiscount{}
+	err = json.Unmarshal(dbQuote.Discounts, &discounts)
+	if err != nil {
+		log.Printf("Error unmarshaling discounts for quote %s: %v", dbQuote.ID, err)
+	}
 
 	return GetUserQuotesWithServiceRow{
 		ID:             dbQuote.ID,
+		UserID:         dbQuote.UserID,
 		QuoteRequestID: dbQuote.QuoteRequestID,
 		Amount:         fmt.Sprintf("%.2f", amount),
 		Breakdown:      breakDowns,
+		Discounts:      discounts,
 		Notes:          dbQuote.Notes,
 		Status:         QuoteStatus(dbQuote.Status),
 		ExpiresAt:      dbQuote.ExpiresAt,
@@ -224,4 +241,32 @@ func DbUserQuotesWithServiceRowsToUserQuotesWithServiceRows(dbQuotes []database.
 		res = append(res, DbUserQuotesWithServiceRowToUserQuotesWithServiceRow(q))
 	}
 	return res
+}
+
+// invoice
+func CalculateInvoiceTotal(items []InvoiceItem, discounts []InvoiceDiscount) float64 {
+
+	var itemsTotal float64
+	var discountsTotal float64
+
+	for _, item := range items {
+		price, _ := strconv.ParseFloat(item.Price, 64)
+
+		itemsTotal += float64(item.Quantity) * price
+	}
+	for _, discount := range discounts {
+		amount, _ := strconv.ParseFloat(discount.Amount, 64)
+		discountsTotal += amount
+	}
+	total := itemsTotal - discountsTotal
+
+	return total
+}
+
+func GenerateInvoiceNumber() string {
+	year := time.Now().Year()
+
+	counter := time.Now().Unix() % 100000
+
+	return fmt.Sprintf("INV-%d-%05d", year, counter)
 }

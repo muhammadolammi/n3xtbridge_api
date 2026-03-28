@@ -61,14 +61,17 @@ func server(apiConfig *handlers.Config) {
 		r.Use(apiConfig.AuthService.RequireAuth)
 		r.Post("/auth/signout", apiConfig.AuthService.LogoutHandler)
 		r.Get("/auth/user", apiConfig.GetUserHandler)
+		// customer routes
 		r.Post("/customer/quotes/requests", apiConfig.CreateQuoteRequestHandler)
 		r.Get("/customer/quotes/my-requests", apiConfig.GetUserQuoteRequestsHandler)
 		r.Get("/customer/quotes", apiConfig.GetUserQuotesWithServiceHandler)
 		r.Get("/customer/quotes/{id}", apiConfig.GetUserQuoteWithServiceHandler)
-
+		// /quotes/:id/accept
 		r.Get("/customer/invoices", apiConfig.GetCustomerInvoicesHandler)
 		r.Get("/invoices/{id}", apiConfig.GetInvoiceHandler)
 		r.Patch("/customer/quotes/requests/{id}/description", apiConfig.UpdateUserQuoteRequestDescriptionHandler)
+		// general routes
+		r.Patch("/customer/quotes/{id}/status", apiConfig.CustomerUpdateQuoteStatusHandler)
 
 	})
 
@@ -91,7 +94,6 @@ func server(apiConfig *handlers.Config) {
 		r.Get("/admin/quote-requests", apiConfig.AdminGetQuoteRequestsHandler)
 		r.Post("/admin/quotes", apiConfig.AdminCreateQuoteHandler)
 		r.Get("/admin/quotes", apiConfig.AdminGetQuotesHandler)
-
 		r.Patch("/admin/quotes/{id}/status", apiConfig.AdminUpdateQuoteStatusHandler)
 
 	})

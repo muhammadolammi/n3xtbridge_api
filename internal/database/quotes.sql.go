@@ -39,15 +39,17 @@ func (q *Queries) CountUserQuotes(ctx context.Context, userID uuid.UUID) (int64,
 }
 
 const createQuote = `-- name: CreateQuote :one
-INSERT INTO quotes (quote_request_id, amount, breakdown, notes, expires_at)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, quote_request_id, amount, breakdown, notes, status, expires_at, created_at, updated_at
+INSERT INTO quotes (quote_request_id,user_id, amount, breakdown,discounts, notes, expires_at)
+VALUES ($1, $2, $3, $4, $5,$6,$7)
+RETURNING id, quote_request_id, amount, breakdown, notes, status, expires_at, created_at, updated_at, discounts, user_id
 `
 
 type CreateQuoteParams struct {
 	QuoteRequestID uuid.UUID
+	UserID         uuid.UUID
 	Amount         string
 	Breakdown      json.RawMessage
+	Discounts      json.RawMessage
 	Notes          string
 	ExpiresAt      time.Time
 }
@@ -55,8 +57,10 @@ type CreateQuoteParams struct {
 func (q *Queries) CreateQuote(ctx context.Context, arg CreateQuoteParams) (Quote, error) {
 	row := q.db.QueryRowContext(ctx, createQuote,
 		arg.QuoteRequestID,
+		arg.UserID,
 		arg.Amount,
 		arg.Breakdown,
+		arg.Discounts,
 		arg.Notes,
 		arg.ExpiresAt,
 	)
@@ -71,12 +75,38 @@ func (q *Queries) CreateQuote(ctx context.Context, arg CreateQuoteParams) (Quote
 		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Discounts,
+		&i.UserID,
+	)
+	return i, err
+}
+
+const getQuote = `-- name: GetQuote :one
+SELECT id, quote_request_id, amount, breakdown, notes, status, expires_at, created_at, updated_at, discounts, user_id FROM quotes
+WHERE id=$1
+`
+
+func (q *Queries) GetQuote(ctx context.Context, id uuid.UUID) (Quote, error) {
+	row := q.db.QueryRowContext(ctx, getQuote, id)
+	var i Quote
+	err := row.Scan(
+		&i.ID,
+		&i.QuoteRequestID,
+		&i.Amount,
+		&i.Breakdown,
+		&i.Notes,
+		&i.Status,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Discounts,
+		&i.UserID,
 	)
 	return i, err
 }
 
 const getQuotes = `-- name: GetQuotes :many
-SELECT    q.id, q.quote_request_id, q.amount, q.breakdown, q.notes, q.status, q.expires_at, q.created_at, q.updated_at, 
+SELECT    q.id, q.quote_request_id, q.amount, q.breakdown, q.notes, q.status, q.expires_at, q.created_at, q.updated_at, q.discounts, q.user_id, 
     s.name as service_name,
     s.icon as service_icon
 FROM quotes q 
@@ -100,6 +130,8 @@ type GetQuotesRow struct {
 	ExpiresAt      time.Time
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	Discounts      json.RawMessage
+	UserID         uuid.UUID
 	ServiceName    string
 	ServiceIcon    string
 }
@@ -123,6 +155,8 @@ func (q *Queries) GetQuotes(ctx context.Context, arg GetQuotesParams) ([]GetQuot
 			&i.ExpiresAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Discounts,
+			&i.UserID,
 			&i.ServiceName,
 			&i.ServiceIcon,
 		); err != nil {
@@ -141,7 +175,7 @@ func (q *Queries) GetQuotes(ctx context.Context, arg GetQuotesParams) ([]GetQuot
 
 const getUserQuoteWithService = `-- name: GetUserQuoteWithService :one
 SELECT 
-    q.id, q.quote_request_id, q.amount, q.breakdown, q.notes, q.status, q.expires_at, q.created_at, q.updated_at, 
+    q.id, q.quote_request_id, q.amount, q.breakdown, q.notes, q.status, q.expires_at, q.created_at, q.updated_at, q.discounts, q.user_id, 
     s.name as service_name,
     s.icon as service_icon,
     s.id as service_id
@@ -166,6 +200,8 @@ type GetUserQuoteWithServiceRow struct {
 	ExpiresAt      time.Time
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	Discounts      json.RawMessage
+	UserID         uuid.UUID
 	ServiceName    string
 	ServiceIcon    string
 	ServiceID      uuid.UUID
@@ -184,6 +220,8 @@ func (q *Queries) GetUserQuoteWithService(ctx context.Context, arg GetUserQuoteW
 		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Discounts,
+		&i.UserID,
 		&i.ServiceName,
 		&i.ServiceIcon,
 		&i.ServiceID,
@@ -193,7 +231,7 @@ func (q *Queries) GetUserQuoteWithService(ctx context.Context, arg GetUserQuoteW
 
 const getUserQuotesWithService = `-- name: GetUserQuotesWithService :many
 SELECT 
-    q.id, q.quote_request_id, q.amount, q.breakdown, q.notes, q.status, q.expires_at, q.created_at, q.updated_at, 
+    q.id, q.quote_request_id, q.amount, q.breakdown, q.notes, q.status, q.expires_at, q.created_at, q.updated_at, q.discounts, q.user_id, 
     s.name as service_name,
     s.icon as service_icon,
         s.id as service_id
@@ -201,7 +239,7 @@ SELECT
 FROM quotes q 
 JOIN quote_requests qr ON q.quote_request_id = qr.id
 JOIN services s ON qr.service_id = s.id
-WHERE qr.user_id = $1 AND q.status= 'sent'
+WHERE qr.user_id = $1 AND  q.status IN ('sent', 'accepted', 'declined')
 ORDER BY q.created_at DESC
 LIMIT $2 OFFSET $3
 `
@@ -222,6 +260,8 @@ type GetUserQuotesWithServiceRow struct {
 	ExpiresAt      time.Time
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	Discounts      json.RawMessage
+	UserID         uuid.UUID
 	ServiceName    string
 	ServiceIcon    string
 	ServiceID      uuid.UUID
@@ -246,6 +286,8 @@ func (q *Queries) GetUserQuotesWithService(ctx context.Context, arg GetUserQuote
 			&i.ExpiresAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Discounts,
+			&i.UserID,
 			&i.ServiceName,
 			&i.ServiceIcon,
 			&i.ServiceID,
