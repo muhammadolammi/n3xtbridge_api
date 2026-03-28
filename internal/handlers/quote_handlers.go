@@ -142,13 +142,13 @@ func (cfg *Config) AdminGetQuoteRequestsHandler(w http.ResponseWriter, r *http.R
 func (cfg *Config) AdminCreateQuoteHandler(w http.ResponseWriter, r *http.Request) {
 
 	input := struct {
-		UserID         uuid.UUID         `json:"user_id"`
-		QuoteRequestID uuid.UUID         `json:"quote_request_id"`
-		Amount         string            `json:"amount"`
-		Breakdown      []InvoiceItem     `json:"breakdown"`
-		Discounts      []InvoiceDiscount `json:"discounts"`
-		Notes          string            `json:"notes"`
-		ExpiresAt      time.Time         `json:"expires_at"`
+		UserID         uuid.UUID    `json:"user_id"`
+		QuoteRequestID uuid.UUID    `json:"quote_request_id"`
+		Amount         string       `json:"amount"`
+		Breakdown      []DBItem     `json:"breakdown"`
+		Discounts      []DBDiscount `json:"discounts"`
+		Notes          string       `json:"notes"`
+		ExpiresAt      time.Time    `json:"expires_at"`
 	}{}
 
 	err := json.NewDecoder(r.Body).Decode(&input)
@@ -164,6 +164,7 @@ func (cfg *Config) AdminCreateQuoteHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if input.UserID == uuid.Nil {
+
 		helpers.RespondWithError(w, http.StatusBadRequest, "User  ID is required")
 		return
 	}
@@ -506,7 +507,6 @@ func (cfg *Config) GetUserQuoteWithServiceHandler(w http.ResponseWriter, r *http
 			ServiceID:      q.ServiceID,
 		}),
 	}
-	log.Println(res.Quote)
 
 	helpers.RespondWithJson(w, http.StatusOK, res)
 }

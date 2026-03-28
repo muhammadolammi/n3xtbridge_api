@@ -17,12 +17,12 @@ import (
 
 func (cfg *Config) CreateInvoiceHandler(w http.ResponseWriter, r *http.Request) {
 	type InvoiceInput struct {
-		CustomerName  string            `json:"customer_name"`
-		CustomerEmail string            `json:"customer_email"`
-		CustomerPhone string            `json:"customer_phone"`
-		Items         []InvoiceItem     `json:"items"`
-		Discounts     []InvoiceDiscount `json:"discounts"`
-		Notes         string            `json:"notes"`
+		CustomerName  string     `json:"customer_name"`
+		CustomerEmail string     `json:"customer_email"`
+		CustomerPhone string     `json:"customer_phone"`
+		Items         []Item     `json:"items"`
+		Discounts     []Discount `json:"discounts"`
+		Notes         string     `json:"notes"`
 	}
 	var input InvoiceInput
 

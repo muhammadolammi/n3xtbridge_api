@@ -27,19 +27,51 @@ func dbUserToUser(dbUser database.User) User {
 
 }
 
+func DbDiscountToDiscount(dbDiscount DBDiscount) Discount {
+	amount, _ := strconv.ParseFloat(dbDiscount.Amount, 64)
+	return Discount{
+		Name:   dbDiscount.Name,
+		Amount: amount,
+	}
+}
+
+func DbDiscountsToDiscounts(dbDiscounts []DBDiscount) []Discount {
+	res := []Discount{}
+	for _, dbDiscount := range dbDiscounts {
+		res = append(res, DbDiscountToDiscount(dbDiscount))
+	}
+	return res
+}
+
+func DbItemToItem(dbItem DBItem) Item {
+	price, _ := strconv.ParseFloat(dbItem.Price, 64)
+	return Item{
+		Name:  dbItem.Name,
+		Price: price,
+	}
+}
+func DbItemsToItems(dbItems []DBItem) []Item {
+	res := []Item{}
+	for _, dbItem := range dbItems {
+		res = append(res, DbItemToItem(dbItem))
+	}
+	return res
+}
 func dbInvoicetoInvoice(dbInvoice database.Invoice) Invoice {
-	items := []InvoiceItem{}
-	err := json.Unmarshal(dbInvoice.Items, &items)
+	dbItems := []DBItem{}
+	err := json.Unmarshal(dbInvoice.Items, &dbItems)
 	if err != nil {
 		log.Printf("Error unmarshaling items for invoice %s: %v", dbInvoice.ID, err)
 
 	}
-	discounts := []InvoiceDiscount{}
-	err = json.Unmarshal(dbInvoice.Discounts, &discounts)
+	dbDiscounts := []DBDiscount{}
+	err = json.Unmarshal(dbInvoice.Discounts, &dbDiscounts)
 	if err != nil {
 
 		log.Printf("Error unmarshaling discounts for invoice %s: %v", dbInvoice.ID, err)
 	}
+	items := DbItemsToItems(dbItems)
+	discounts := DbDiscountsToDiscounts(dbDiscounts)
 	total, _ := strconv.ParseFloat(dbInvoice.Total, 64)
 	return Invoice{
 		ID:            dbInvoice.ID,
@@ -118,18 +150,20 @@ func DbQuoteRequestsToQuoteRequests(dbReqs []database.QuoteRequest) []QuoteReque
 func DbQuoteToQuote(dbQuote database.Quote) Quote {
 	// Parse the decimal string to float64 for the frontend
 	amount, _ := strconv.ParseFloat(dbQuote.Amount, 64)
-	breakDowns := []InvoiceItem{}
-	err := json.Unmarshal(dbQuote.Breakdown, &breakDowns)
+	dbBreakDowns := []DBItem{}
+	err := json.Unmarshal(dbQuote.Breakdown, &dbBreakDowns)
 	if err != nil {
 
 		log.Printf("Error unmarshaling breakdowns for quote %s: %v", dbQuote.ID, err)
 	}
-	discounts := []InvoiceDiscount{}
-	err = json.Unmarshal(dbQuote.Discounts, &discounts)
+	dbDiscounts := []DBDiscount{}
+	err = json.Unmarshal(dbQuote.Discounts, &dbDiscounts)
 	if err != nil {
 
 		log.Printf("Error unmarshaling discounts for quote %s: %v", dbQuote.ID, err)
 	}
+	breakDowns := DbItemsToItems(dbBreakDowns)
+	discounts := DbDiscountsToDiscounts(dbDiscounts)
 
 	return Quote{
 		ID:             dbQuote.ID,
@@ -205,17 +239,20 @@ func DbUserQuoteRequestRowsToUserQuoteRequestsRow(dbRows []database.GetUserQuote
 func DbUserQuotesWithServiceRowToUserQuotesWithServiceRow(dbQuote database.GetUserQuotesWithServiceRow) GetUserQuotesWithServiceRow {
 	// Parse the decimal string to float64 for the frontend
 	amount, _ := strconv.ParseFloat(dbQuote.Amount, 64)
-	breakDowns := []InvoiceItem{}
-	err := json.Unmarshal(dbQuote.Breakdown, &breakDowns)
+	dbBreakDowns := []DBItem{}
+	err := json.Unmarshal(dbQuote.Breakdown, &dbBreakDowns)
 	if err != nil {
 
 		log.Printf("Error unmarshaling breakdowns for quote %s: %v", dbQuote.ID, err)
 	}
-	discounts := []InvoiceDiscount{}
-	err = json.Unmarshal(dbQuote.Discounts, &discounts)
+
+	dbDiscounts := []DBDiscount{}
+	err = json.Unmarshal(dbQuote.Discounts, &dbDiscounts)
 	if err != nil {
 		log.Printf("Error unmarshaling discounts for quote %s: %v", dbQuote.ID, err)
 	}
+	breakDowns := DbItemsToItems(dbBreakDowns)
+	discounts := DbDiscountsToDiscounts(dbDiscounts)
 
 	return GetUserQuotesWithServiceRow{
 		ID:             dbQuote.ID,
@@ -244,19 +281,19 @@ func DbUserQuotesWithServiceRowsToUserQuotesWithServiceRows(dbQuotes []database.
 }
 
 // invoice
-func CalculateInvoiceTotal(items []InvoiceItem, discounts []InvoiceDiscount) float64 {
+func CalculateInvoiceTotal(items []Item, discounts []Discount) float64 {
 
 	var itemsTotal float64
 	var discountsTotal float64
 
 	for _, item := range items {
-		price, _ := strconv.ParseFloat(item.Price, 64)
+		// price, _ := strconv.ParseFloat(item.Price, 64)
 
-		itemsTotal += float64(item.Quantity) * price
+		itemsTotal += float64(item.Quantity) * item.Price
 	}
 	for _, discount := range discounts {
-		amount, _ := strconv.ParseFloat(discount.Amount, 64)
-		discountsTotal += amount
+
+		discountsTotal += discount.Amount
 	}
 	total := itemsTotal - discountsTotal
 
