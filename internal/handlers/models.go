@@ -7,17 +7,19 @@ import (
 	"github.com/google/uuid"
 	goauth "github.com/muhammadolammi/goauth/pkg/auth"
 	"github.com/muhammadolammi/n3xtbridge_api/internal/database"
+	payment "github.com/muhammadolammi/n3xtbridge_api/internal/payments"
 )
 
 type Config struct {
-	DBURL                      string
-	DBQueries                  *database.Queries
-	DBConn                     *sql.DB
-	ClientApiKey               string
-	JwtSecret                  string
-	RateLimit                  int
-	RefreshTokenEXpirationTime int //in minute
-	AcessTokenEXpirationTime   int //in minute
+	DBURL          string
+	DBQueries      *database.Queries
+	DBConn         *sql.DB
+	ClientApiKey   string
+	JwtSecret      string
+	RateLimit      int
+	Paystack       *payment.PaystackService
+	PaystackSecret string
+	IsProd         bool
 	// Email configuration (Zoho SMTP)
 	SMTPServer   string
 	SMTPPort     int
@@ -148,25 +150,31 @@ type GetUserQuotesWithServiceRow struct {
 type Item struct {
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
-	Quantity    int     `json:"quantity"`
+	Quantity    float64 `json:"quantity"`
 	Price       float64 `json:"price"`
 }
 
 type Discount struct {
-	Name   string  `json:"name"`
-	Amount float64 `json:"amount"`
+	Name        string  `json:"name"`
+	Amount      float64 `json:"amount"`
+	Type        string  `json:"type"`
+	Description string  `json:"description"`
+	ItemName    string  `json:"item_name"`
 }
 
 type DBItem struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Quantity    int    `json:"quantity"`
-	Price       string `json:"price"`
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Quantity    float64 `json:"quantity"`
+	Price       string  `json:"price"`
 }
 
 type DBDiscount struct {
-	Name   string `json:"name"`
-	Amount string `json:"amount"`
+	Name        string `json:"name"`
+	Amount      string `json:"amount"`
+	Type        string `json:"type"`
+	Description string `json:"description"`
+	ItemName    string `json:"item_name"`
 }
 
 type Invoice struct {
@@ -186,4 +194,16 @@ type Invoice struct {
 	DeletedAt     sql.NullTime `json:"deleted_at"`
 
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type Promotion struct {
+	ID          uuid.UUID      `json:"id"`
+	Code        string         `json:"code"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	Breakdown   []Discount     `json:"breakdown"`
+	IsActive    bool           `json:"is_active"`
+	StartsAt    time.Time      `json:"starts_at"`
+	ExpiresAt   sql.NullTime   `json:"expires_at"`
+	CreatedAt   time.Time      `json:"created_at"`
 }

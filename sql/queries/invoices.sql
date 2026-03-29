@@ -61,3 +61,8 @@ SELECT COUNT(*) FROM invoices WHERE customer_email=$1;
 UPDATE invoices 
 SET deleted_at = NOW(), updated_at = NOW()
 WHERE id = $1 AND customer_email = $2;
+
+-- name: MarkInvoiceAsPaid :exec
+UPDATE invoices 
+SET status = 'paid', updated_at = NOW()
+WHERE id = $1;

@@ -39,7 +39,7 @@ INSERT INTO services (
     name, description, category, is_featured, icon , tags , image
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7
-) RETURNING id, name, description, category, is_active, is_featured, icon, image, tags, created_at
+) RETURNING id, name, description, category, is_active, is_featured, icon, image, tags, created_at, active_promo_ids
 `
 
 type CreateServiceParams struct {
@@ -74,12 +74,13 @@ func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (S
 		&i.Image,
 		pq.Array(&i.Tags),
 		&i.CreatedAt,
+		&i.ActivePromoIds,
 	)
 	return i, err
 }
 
 const getActiveServices = `-- name: GetActiveServices :many
-SELECT id, name, description, category, is_active, is_featured, icon, image, tags, created_at FROM services 
+SELECT id, name, description, category, is_active, is_featured, icon, image, tags, created_at, active_promo_ids FROM services 
 WHERE is_active = true
 ORDER BY 
     is_featured DESC, 
@@ -113,6 +114,7 @@ func (q *Queries) GetActiveServices(ctx context.Context, arg GetActiveServicesPa
 			&i.Image,
 			pq.Array(&i.Tags),
 			&i.CreatedAt,
+			&i.ActivePromoIds,
 		); err != nil {
 			return nil, err
 		}
@@ -128,7 +130,7 @@ func (q *Queries) GetActiveServices(ctx context.Context, arg GetActiveServicesPa
 }
 
 const getService = `-- name: GetService :one
-SELECT id, name, description, category, is_active, is_featured, icon, image, tags, created_at FROM services WHERE id = $1
+SELECT id, name, description, category, is_active, is_featured, icon, image, tags, created_at, active_promo_ids FROM services WHERE id = $1
 `
 
 func (q *Queries) GetService(ctx context.Context, id uuid.UUID) (Service, error) {
@@ -145,12 +147,13 @@ func (q *Queries) GetService(ctx context.Context, id uuid.UUID) (Service, error)
 		&i.Image,
 		pq.Array(&i.Tags),
 		&i.CreatedAt,
+		&i.ActivePromoIds,
 	)
 	return i, err
 }
 
 const getServiceByName = `-- name: GetServiceByName :one
-SELECT id, name, description, category, is_active, is_featured, icon, image, tags, created_at FROM services WHERE name = $1
+SELECT id, name, description, category, is_active, is_featured, icon, image, tags, created_at, active_promo_ids FROM services WHERE name = $1
 `
 
 func (q *Queries) GetServiceByName(ctx context.Context, name string) (Service, error) {
@@ -167,12 +170,13 @@ func (q *Queries) GetServiceByName(ctx context.Context, name string) (Service, e
 		&i.Image,
 		pq.Array(&i.Tags),
 		&i.CreatedAt,
+		&i.ActivePromoIds,
 	)
 	return i, err
 }
 
 const getServices = `-- name: GetServices :many
-SELECT id, name, description, category, is_active, is_featured, icon, image, tags, created_at FROM services 
+SELECT id, name, description, category, is_active, is_featured, icon, image, tags, created_at, active_promo_ids FROM services 
 ORDER BY 
     is_featured DESC, 
     created_at DESC
@@ -205,6 +209,7 @@ func (q *Queries) GetServices(ctx context.Context, arg GetServicesParams) ([]Ser
 			&i.Image,
 			pq.Array(&i.Tags),
 			&i.CreatedAt,
+			&i.ActivePromoIds,
 		); err != nil {
 			return nil, err
 		}

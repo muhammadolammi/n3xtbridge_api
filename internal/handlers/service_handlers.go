@@ -14,7 +14,7 @@ import (
 	"github.com/muhammadolammi/n3xtbridge_api/internal/helpers"
 )
 
-func (cfg *Config) CreateServiceeHandler(w http.ResponseWriter, r *http.Request) {
+func (cfg *Config) CreateServiceHandler(w http.ResponseWriter, r *http.Request) {
 	input := struct {
 		Name        string   `json:"name"`
 		Description string   `json:"description"`
@@ -84,7 +84,7 @@ func (cfg *Config) GetActiveServicesHandler(w http.ResponseWriter, r *http.Reque
 		Services []Service `json:"services"`
 		Total    int64     `json:"total"`
 	}{
-		Services: dbServicesstoServices(services),
+		Services: dbServicesToServices(services),
 		Total:    count,
 	}
 	helpers.RespondWithJson(w, http.StatusOK, res)
@@ -123,7 +123,7 @@ func (cfg *Config) AdminListAllServicesHandler(w http.ResponseWriter, r *http.Re
 		Services []Service `json:"services"`
 		Total    int64     `json:"total"`
 	}{
-		Services: dbServicesstoServices(services),
+		Services: dbServicesToServices(services),
 		Total:    count,
 	}
 	helpers.RespondWithJson(w, http.StatusOK, res)
@@ -172,4 +172,30 @@ func (cfg *Config) AdminUpdateServiceStatusHandler(w http.ResponseWriter, r *htt
 	}
 	helpers.RespondWithJson(w, http.StatusOK, "service status updated")
 
+}
+
+func (cfg *Config) GetServiceHandler(w http.ResponseWriter, r *http.Request) {
+	serviceId := chi.URLParam(r, "id")
+	if serviceId == "" {
+		helpers.RespondWithError(w, http.StatusBadRequest, "")
+		return
+	}
+
+	parsedID, err := uuid.Parse(serviceId)
+	if err != nil {
+		helpers.RespondWithError(w, http.StatusBadRequest, "error parsing id")
+		return
+	}
+	service, err := cfg.DBQueries.GetService(r.Context(), parsedID)
+	if err != nil {
+		log.Println("DB ERROR error getting service: " + err.Error())
+		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting service")
+		return
+	}
+	res := struct {
+		Services Service `json:"service"`
+	}{
+		Services: dbServiceToService(service),
+	}
+	helpers.RespondWithJson(w, http.StatusOK, res)
 }
