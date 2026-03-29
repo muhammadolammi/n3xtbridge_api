@@ -213,15 +213,27 @@ type Invoice struct {
 type Payment struct {
 	ID         uuid.UUID
 	InvoiceID  uuid.UUID
-	Amount     string
-	Currency   sql.NullString
 	Provider   ProviderType
 	Status     PaymentStatus
 	Reference  string
-	ExternalID sql.NullString
-	Metadata   pqtype.NullRawMessage
 	CreatedAt  sql.NullTime
 	UpdatedAt  sql.NullTime
+	Amount     string
+	Currency   sql.NullString
+	ExternalID sql.NullString
+	Metadata   pqtype.NullRawMessage
+}
+
+type Promotion struct {
+	ID          uuid.UUID
+	Code        string
+	Name        string
+	Description sql.NullString
+	Breakdown   json.RawMessage
+	IsActive    sql.NullBool
+	StartsAt    sql.NullTime
+	ExpiresAt   sql.NullTime
+	CreatedAt   sql.NullTime
 }
 
 type Quote struct {
@@ -262,16 +274,17 @@ type RefreshToken struct {
 }
 
 type Service struct {
-	ID          uuid.UUID
-	Name        string
-	Description string
-	Category    string
-	IsActive    bool
-	IsFeatured  bool
-	Icon        string
-	Image       string
-	Tags        []string
-	CreatedAt   time.Time
+	ID             uuid.UUID
+	Name           string
+	Description    string
+	Category       string
+	IsActive       bool
+	IsFeatured     bool
+	Icon           string
+	Image          string
+	Tags           []string
+	CreatedAt      time.Time
+	ActivePromoIds json.RawMessage
 }
 
 type User struct {

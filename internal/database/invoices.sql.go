@@ -364,6 +364,17 @@ func (q *Queries) ListInvoices(ctx context.Context, arg ListInvoicesParams) ([]I
 	return items, nil
 }
 
+const markInvoiceAsPaid = `-- name: MarkInvoiceAsPaid :exec
+UPDATE invoices 
+SET status = 'paid', updated_at = NOW()
+WHERE id = $1
+`
+
+func (q *Queries) MarkInvoiceAsPaid(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, markInvoiceAsPaid, id)
+	return err
+}
+
 const softDeleteInvoice = `-- name: SoftDeleteInvoice :exec
 UPDATE invoices 
 SET deleted_at = NOW(), updated_at = NOW()

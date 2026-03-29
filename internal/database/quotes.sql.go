@@ -81,6 +81,33 @@ func (q *Queries) CreateQuote(ctx context.Context, arg CreateQuoteParams) (Quote
 	return i, err
 }
 
+const getInvoiceByQuoteID = `-- name: GetInvoiceByQuoteID :one
+SELECT id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at FROM invoices WHERE quote_id = $1
+`
+
+func (q *Queries) GetInvoiceByQuoteID(ctx context.Context, quoteID uuid.NullUUID) (Invoice, error) {
+	row := q.db.QueryRowContext(ctx, getInvoiceByQuoteID, quoteID)
+	var i Invoice
+	err := row.Scan(
+		&i.ID,
+		&i.InvoiceNumber,
+		&i.CustomerName,
+		&i.CustomerEmail,
+		&i.CustomerPhone,
+		&i.Total,
+		&i.Notes,
+		&i.Items,
+		&i.Discounts,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.Status,
+		&i.QuoteID,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const getQuote = `-- name: GetQuote :one
 SELECT id, quote_request_id, amount, breakdown, notes, status, expires_at, created_at, updated_at, discounts, user_id FROM quotes
 WHERE id=$1

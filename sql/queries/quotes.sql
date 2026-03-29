@@ -54,3 +54,7 @@ UPDATE quotes SET status = $2, updated_at = NOW() WHERE id = $1;
 -- name: GetQuote :one
 SELECT * FROM quotes
 WHERE id=$1;
+
+
+-- name: GetInvoiceByQuoteID :one
+SELECT * FROM invoices WHERE quote_id = $1;

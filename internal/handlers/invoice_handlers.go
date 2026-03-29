@@ -17,12 +17,12 @@ import (
 
 func (cfg *Config) CreateInvoiceHandler(w http.ResponseWriter, r *http.Request) {
 	type InvoiceInput struct {
-		CustomerName  string     `json:"customer_name"`
-		CustomerEmail string     `json:"customer_email"`
-		CustomerPhone string     `json:"customer_phone"`
-		Items         []Item     `json:"items"`
-		Discounts     []Discount `json:"discounts"`
-		Notes         string     `json:"notes"`
+		CustomerName  string       `json:"customer_name"`
+		CustomerEmail string       `json:"customer_email"`
+		CustomerPhone string       `json:"customer_phone"`
+		Items         []DBItem     `json:"items"`
+		Discounts     []DBDiscount `json:"discounts"`
+		Notes         string       `json:"notes"`
 	}
 	var input InvoiceInput
 
@@ -92,6 +92,43 @@ func (cfg *Config) GetInvoiceHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	invoice, err := cfg.DBQueries.GetInvoice(r.Context(), parsedId)
+	if err != nil {
+		log.Println("DB ERROR error getting invoice: " + err.Error())
+		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting invoice")
+		return
+	}
+	// authorization
+	user, httpstatus, err := cfg.getUserFromReq(r)
+	if err != nil {
+		helpers.RespondWithError(w, httpstatus, err.Error())
+		return
+
+	}
+	if user.Role != "admin" {
+		//  staff must own the invoice
+		if user.ID != invoice.UserID && invoice.CustomerEmail != user.Email {
+
+			helpers.RespondWithError(w, http.StatusUnauthorized, "user not authorize")
+			return
+		}
+	}
+
+	helpers.RespondWithJson(w, http.StatusOK, dbInvoicetoInvoice(invoice))
+}
+
+func (cfg *Config) GetQuoteInvoiceHandler(w http.ResponseWriter, r *http.Request) {
+	quoteID := chi.URLParam(r, "id")
+	if quoteID == "" {
+		helpers.RespondWithError(w, http.StatusBadRequest, "")
+		return
+	}
+
+	parsedId, err := uuid.Parse(quoteID)
+	if err != nil {
+		helpers.RespondWithError(w, http.StatusBadRequest, "error parsing id")
+		return
+	}
+	invoice, err := cfg.DBQueries.GetInvoiceByQuoteID(r.Context(), uuid.NullUUID{Valid: true, UUID: parsedId})
 	if err != nil {
 		log.Println("DB ERROR error getting invoice: " + err.Error())
 		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting invoice")
@@ -211,10 +248,19 @@ func (cfg *Config) GetCustomerInvoicesHandler(w http.ResponseWriter, r *http.Req
 }
 
 func (cfg *Config) AdminListAllInvoicesHandler(w http.ResponseWriter, r *http.Request) {
-
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 10 // Default
+	}
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil || offset < 0 {
+		offset = 0 // Default
+	}
 	invoices, err := cfg.DBQueries.ListInvoices(r.Context(), database.ListInvoicesParams{
-		Offset: 10,
-		Limit:  10,
+		Offset: int32(offset),
+		Limit:  int32(limit),
 	})
 	if err != nil {
 		log.Println("DB ERROR error getting invoice: " + err.Error())
@@ -235,5 +281,6 @@ func (cfg *Config) AdminListAllInvoicesHandler(w http.ResponseWriter, r *http.Re
 		Invoices: dbInvoicestoInvoices(invoices),
 		Total:    count,
 	}
+	log.Println(res.Invoices)
 	helpers.RespondWithJson(w, http.StatusOK, res)
 }

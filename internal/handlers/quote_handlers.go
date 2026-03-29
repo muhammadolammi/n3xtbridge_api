@@ -41,7 +41,9 @@ func (cfg *Config) CreateQuoteRequestHandler(w http.ResponseWriter, r *http.Requ
 	}
 	if user.Role == "admin" {
 		helpers.RespondWithError(w, http.StatusBadRequest, "admin should not be creating request")
+		return
 	}
+
 	quoteRequest, err := cfg.DBQueries.CreateQuoteRequest(r.Context(), database.CreateQuoteRequestParams{
 		UserID:      input.UserID,
 		ServiceName: input.ServiceName,

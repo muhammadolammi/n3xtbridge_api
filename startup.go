@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/muhammadolammi/n3xtbridge_api/internal/handlers"
+	payment "github.com/muhammadolammi/n3xtbridge_api/internal/payments"
 )
 
 func buildConfig() handlers.Config {
@@ -25,11 +26,16 @@ func buildConfig() handlers.Config {
 	if jwtSecret == "" {
 		log.Println("Empty JWT_SECRET in env")
 	}
+	paystackKey := os.Getenv("PAYSTACK_SECRET_KEY")
+	if paystackKey == "" {
+		log.Panic("Empty PAYSTACK_SECRET_KEY in env, server wont be able to make payment")
+
+	}
 	return handlers.Config{
-		DBURL:                      dburl,
-		ClientApiKey:               clientApiKey,
-		RefreshTokenEXpirationTime: 60 * 24 * 7, //7 days
-		AcessTokenEXpirationTime:   60 * 24,     //a day
+		DBURL:          dburl,
+		ClientApiKey:   clientApiKey,
+		Paystack:       payment.NewPaystackService(paystackKey),
+		PaystackSecret: paystackKey,
 	}
 
 }

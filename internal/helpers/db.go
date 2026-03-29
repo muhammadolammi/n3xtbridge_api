@@ -3,6 +3,7 @@ package helpers
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -16,6 +17,12 @@ type AcceptQuoteAndCreateInvoiceParams struct {
 	Queries       *database.Queries
 	InvoiceNumber string
 	AdminID       uuid.UUID
+}
+type CreatePromotionAndLinkWithServiceParam struct {
+	Db                   *sql.DB
+	Queries              *database.Queries
+	CreatePromotionParam database.CreatePromotionParams
+	Service              database.Service
 }
 
 func AcceptQuoteAndCreateInvoice(ctx context.Context, params AcceptQuoteAndCreateInvoiceParams) error {
@@ -64,4 +71,78 @@ func AcceptQuoteAndCreateInvoice(ctx context.Context, params AcceptQuoteAndCreat
 
 	// 5. Commit everything if both succeeded
 	return tx.Commit()
+}
+
+func FinalizePayment(ctx context.Context, db *sql.DB, queries *database.Queries, reference string, externalID string) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	qtx := queries.WithTx(tx)
+
+	// 1. Update Payment Status
+	payment, err := qtx.GetPaymentByReference(ctx, reference)
+	if err != nil {
+		return fmt.Errorf("payment ref not found: %w", err)
+	}
+
+	err = qtx.UpdatePaymentStatus(ctx, database.UpdatePaymentStatusParams{
+		Reference:  reference,
+		Status:     "success",
+		ExternalID: sql.NullString{String: fmt.Sprintf("%s", externalID), Valid: true},
+	})
+	if err != nil {
+		return err
+	}
+
+	// 2. Update Invoice Status
+	err = qtx.MarkInvoiceAsPaid(ctx, payment.InvoiceID)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func CreatePromotionAndLinkWithService(ctx context.Context, params CreatePromotionAndLinkWithServiceParam) (database.Promotion, error) {
+	// 1. Start the transaction
+	tx, err := params.Db.BeginTx(ctx, nil)
+	if err != nil {
+		return database.Promotion{}, err
+	}
+
+	// Ensure rollback happens if any error occurs (or if we forget to commit)
+	defer tx.Rollback()
+
+	// 2. Bind the generated queries to this transaction
+	qtx := params.Queries.WithTx(tx)
+	promo, err := qtx.CreatePromotion(ctx, params.CreatePromotionParam)
+	if err != nil {
+		return database.Promotion{}, fmt.Errorf("failed to create  promotion: %w", err)
+	}
+
+	// 3. Operation A: Accept the quote
+	currentPromos := []string{}
+
+	err = json.Unmarshal(params.Service.ActivePromoIds, &currentPromos)
+	if err != nil {
+		return database.Promotion{}, err
+	}
+	currentPromos = append(currentPromos, promo.ID.String())
+	jsonBPromos, err := json.Marshal(&currentPromos)
+	if err != nil {
+		return database.Promotion{}, err
+	}
+	err = qtx.UpdateServicePromo(ctx, database.UpdateServicePromoParams{
+		ID:             params.Service.ID,
+		ActivePromoIds: jsonBPromos,
+	})
+	if err != nil {
+		return database.Promotion{}, fmt.Errorf("failed to update service promo: %w", err)
+	}
+
+	// 5. Commit everything if both succeeded
+	return promo, tx.Commit()
 }

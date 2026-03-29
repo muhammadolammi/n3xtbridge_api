@@ -29,9 +29,13 @@ func dbUserToUser(dbUser database.User) User {
 
 func DbDiscountToDiscount(dbDiscount DBDiscount) Discount {
 	amount, _ := strconv.ParseFloat(dbDiscount.Amount, 64)
+
 	return Discount{
-		Name:   dbDiscount.Name,
-		Amount: amount,
+		Name:        dbDiscount.Name,
+		Amount:      amount,
+		Description: dbDiscount.Description,
+		Type:        dbDiscount.Type,
+		ItemName:    dbDiscount.ItemName,
 	}
 }
 
@@ -44,10 +48,14 @@ func DbDiscountsToDiscounts(dbDiscounts []DBDiscount) []Discount {
 }
 
 func DbItemToItem(dbItem DBItem) Item {
+
 	price, _ := strconv.ParseFloat(dbItem.Price, 64)
+
 	return Item{
-		Name:  dbItem.Name,
-		Price: price,
+		Name:        dbItem.Name,
+		Price:       price,
+		Quantity:    dbItem.Quantity,
+		Description: dbItem.Description,
 	}
 }
 func DbItemsToItems(dbItems []DBItem) []Item {
@@ -118,7 +126,7 @@ func dbServiceToService(dbService database.Service) Service {
 
 }
 
-func dbServicesstoServices(dbServices []database.Service) []Service {
+func dbServicesToServices(dbServices []database.Service) []Service {
 	res := []Service{}
 	for _, dbService := range dbServices {
 		res = append(res, dbServiceToService(dbService))
@@ -281,10 +289,11 @@ func DbUserQuotesWithServiceRowsToUserQuotesWithServiceRows(dbQuotes []database.
 }
 
 // invoice
-func CalculateInvoiceTotal(items []Item, discounts []Discount) float64 {
-
+func CalculateInvoiceTotal(dbItems []DBItem, dbDiscounts []DBDiscount) float64 {
 	var itemsTotal float64
 	var discountsTotal float64
+	items := DbItemsToItems(dbItems)
+	discounts := DbDiscountsToDiscounts(dbDiscounts)
 
 	for _, item := range items {
 		// price, _ := strconv.ParseFloat(item.Price, 64)
@@ -306,4 +315,33 @@ func GenerateInvoiceNumber() string {
 	counter := time.Now().Unix() % 100000
 
 	return fmt.Sprintf("INV-%d-%05d", year, counter)
+}
+
+func dbPromoToPromo(dbPromo database.Promotion) Promotion {
+	dbBreakdowns := []DBDiscount{}
+	err := json.Unmarshal(dbPromo.Breakdown, &dbBreakdowns)
+	if err != nil {
+		log.Printf("Error unmarshaling breakdown for Promo %s: %v", dbPromo.ID, err)
+	}
+	discounts := DbDiscountsToDiscounts(dbBreakdowns)
+
+	return Promotion{
+		ID:          dbPromo.ID,
+		Code:        dbPromo.Code,
+		Name:        dbPromo.Name,
+		Description: dbPromo.Description,
+		Breakdown:   discounts,
+		IsActive:    dbPromo.IsActive.Bool,
+		StartsAt:    dbPromo.StartsAt.Time,
+		ExpiresAt:   dbPromo.ExpiresAt,
+		CreatedAt:   dbPromo.CreatedAt.Time,
+	}
+}
+
+func dbPromosToPromos(dbPromos []database.Promotion) []Promotion {
+	res := make([]Promotion, 0, len(dbPromos))
+	for _, p := range dbPromos {
+		res = append(res, dbPromoToPromo(p))
+	}
+	return res
 }

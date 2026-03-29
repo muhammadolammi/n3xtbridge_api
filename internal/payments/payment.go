@@ -24,10 +24,22 @@ func NewPaystackService(secretKey string) *PaystackService {
 	}
 }
 
+type WebhookEvent struct {
+	Event string `json:"event"`
+	Data  struct {
+		Reference string          `json:"reference"`
+		Status    string          `json:"status"`
+		Amount    int64           `json:"amount"`
+		ID        int64           `json:"id"`
+		Metadata  json.RawMessage `json:"metadata"`
+	} `json:"data"`
+}
+
 // TransactionInitRequest is the payload sent to Paystack
 type TransactionInitRequest struct {
 	Email     string `json:"email"`
 	Amount    int64  `json:"amount"` // Amount in kobo (Naira * 100)
+	Currency  string `json:"currency"`
 	Reference string `json:"reference"`
 	Callback  string `json:"callback_url"`
 }
