@@ -37,9 +37,9 @@ func (q *Queries) CountUserQuoteRequests(ctx context.Context, userID uuid.UUID) 
 }
 
 const createQuoteRequest = `-- name: CreateQuoteRequest :one
-INSERT INTO quote_requests (user_id, service_id,service_name,  description, attachments)
-VALUES ($1, $2, $3, $4,$5)
-RETURNING id, user_id, service_id, service_name, description, attachments, status, created_at, updated_at, budget
+INSERT INTO quote_requests (user_id, service_id,service_name,  description, attachments, promo_ids)
+VALUES ($1, $2, $3, $4,$5, $6)
+RETURNING id, user_id, service_id, service_name, description, attachments, status, created_at, updated_at, budget, promo_ids
 `
 
 type CreateQuoteRequestParams struct {
@@ -48,6 +48,7 @@ type CreateQuoteRequestParams struct {
 	ServiceName string
 	Description string
 	Attachments []string
+	PromoIds    []string
 }
 
 func (q *Queries) CreateQuoteRequest(ctx context.Context, arg CreateQuoteRequestParams) (QuoteRequest, error) {
@@ -57,6 +58,7 @@ func (q *Queries) CreateQuoteRequest(ctx context.Context, arg CreateQuoteRequest
 		arg.ServiceName,
 		arg.Description,
 		pq.Array(arg.Attachments),
+		pq.Array(arg.PromoIds),
 	)
 	var i QuoteRequest
 	err := row.Scan(
@@ -70,12 +72,13 @@ func (q *Queries) CreateQuoteRequest(ctx context.Context, arg CreateQuoteRequest
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Budget,
+		pq.Array(&i.PromoIds),
 	)
 	return i, err
 }
 
 const getQuoteRequest = `-- name: GetQuoteRequest :one
-SELECT id, user_id, service_id, service_name, description, attachments, status, created_at, updated_at, budget FROM quote_requests
+SELECT id, user_id, service_id, service_name, description, attachments, status, created_at, updated_at, budget, promo_ids FROM quote_requests
 WHERE id=$1
 `
 
@@ -93,13 +96,14 @@ func (q *Queries) GetQuoteRequest(ctx context.Context, id uuid.UUID) (QuoteReque
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Budget,
+		pq.Array(&i.PromoIds),
 	)
 	return i, err
 }
 
 const getQuoteRequests = `-- name: GetQuoteRequests :many
 SELECT 
-    qr.id, qr.user_id, qr.service_id, qr.service_name, qr.description, qr.attachments, qr.status, qr.created_at, qr.updated_at, qr.budget, 
+    qr.id, qr.user_id, qr.service_id, qr.service_name, qr.description, qr.attachments, qr.status, qr.created_at, qr.updated_at, qr.budget, qr.promo_ids, 
     u.email as user_email, 
     u.first_name as user_name,
     s.name as service_name
@@ -127,6 +131,7 @@ type GetQuoteRequestsRow struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	Budget        sql.NullString
+	PromoIds      []string
 	UserEmail     string
 	UserName      string
 	ServiceName_2 string
@@ -152,6 +157,7 @@ func (q *Queries) GetQuoteRequests(ctx context.Context, arg GetQuoteRequestsPara
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Budget,
+			pq.Array(&i.PromoIds),
 			&i.UserEmail,
 			&i.UserName,
 			&i.ServiceName_2,
@@ -171,7 +177,7 @@ func (q *Queries) GetQuoteRequests(ctx context.Context, arg GetQuoteRequestsPara
 
 const getUserQuoteRequests = `-- name: GetUserQuoteRequests :many
 SELECT 
-  qr.id, qr.user_id, qr.service_id, qr.service_name, qr.description, qr.attachments, qr.status, qr.created_at, qr.updated_at, qr.budget,
+  qr.id, qr.user_id, qr.service_id, qr.service_name, qr.description, qr.attachments, qr.status, qr.created_at, qr.updated_at, qr.budget, qr.promo_ids,
   s.name AS service_name,
   q.id AS quote_id
 FROM quote_requests qr
@@ -199,6 +205,7 @@ type GetUserQuoteRequestsRow struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	Budget        sql.NullString
+	PromoIds      []string
 	ServiceName_2 string
 	QuoteID       uuid.NullUUID
 }
@@ -224,6 +231,7 @@ func (q *Queries) GetUserQuoteRequests(ctx context.Context, arg GetUserQuoteRequ
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Budget,
+			pq.Array(&i.PromoIds),
 			&i.ServiceName_2,
 			&i.QuoteID,
 		); err != nil {

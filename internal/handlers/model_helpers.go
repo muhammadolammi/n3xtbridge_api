@@ -121,6 +121,7 @@ func dbServiceToService(dbService database.Service) Service {
 		Icon:        dbService.Icon,
 		Image:       dbService.Image,
 		Tags:        dbService.Tags,
+		PromoIDs:    dbService.ActivePromoIds,
 		CreatedAt:   dbService.CreatedAt,
 	}
 
@@ -141,6 +142,7 @@ func DbQuoteRequestToQuoteRequest(dbReq database.QuoteRequest) QuoteRequest {
 		ServiceID:   dbReq.ServiceID,
 		Description: dbReq.Description,
 		Attachments: dbReq.Attachments,
+		PromoIDs:    dbReq.PromoIds,
 		Status:      QuoteRequestStatus(dbReq.Status),
 		CreatedAt:   dbReq.CreatedAt,
 		UpdatedAt:   dbReq.UpdatedAt,
@@ -180,11 +182,13 @@ func DbQuoteToQuote(dbQuote database.Quote) Quote {
 		Amount:         fmt.Sprintf("%.2f", amount),
 		Breakdown:      breakDowns,
 		Discounts:      discounts,
-		Notes:          dbQuote.Notes,
-		Status:         QuoteStatus(dbQuote.Status),
-		ExpiresAt:      dbQuote.ExpiresAt,
-		CreatedAt:      dbQuote.CreatedAt,
-		UpdatedAt:      dbQuote.UpdatedAt,
+		PromoIDs:       dbQuote.PromoIds,
+
+		Notes:     dbQuote.Notes,
+		Status:    QuoteStatus(dbQuote.Status),
+		ExpiresAt: dbQuote.ExpiresAt,
+		CreatedAt: dbQuote.CreatedAt,
+		UpdatedAt: dbQuote.UpdatedAt,
 	}
 }
 
@@ -204,6 +208,7 @@ func DbQuoteRequestRowToQuoteRequestRow(dbRow database.GetQuoteRequestsRow) GetQ
 		Description: dbRow.Description,
 		Attachments: dbRow.Attachments,
 		Status:      QuoteRequestStatus(dbRow.Status),
+		PromoIDs:    dbRow.PromoIds,
 		CreatedAt:   dbRow.CreatedAt,
 		UpdatedAt:   dbRow.UpdatedAt,
 		UserEmail:   dbRow.UserEmail,
@@ -228,9 +233,11 @@ func DbUserQuoteRequestRowToUserQuoteRequestRow(dbRow database.GetUserQuoteReque
 		ServiceID:   dbRow.ServiceID,
 		Description: dbRow.Description,
 		Attachments: dbRow.Attachments,
-		Status:      QuoteRequestStatus(dbRow.Status),
-		CreatedAt:   dbRow.CreatedAt,
-		UpdatedAt:   dbRow.UpdatedAt,
+		PromoIDs:    dbRow.PromoIds,
+
+		Status:    QuoteRequestStatus(dbRow.Status),
+		CreatedAt: dbRow.CreatedAt,
+		UpdatedAt: dbRow.UpdatedAt,
 
 		ServiceName: dbRow.ServiceName,
 	}
@@ -269,14 +276,16 @@ func DbUserQuotesWithServiceRowToUserQuotesWithServiceRow(dbQuote database.GetUs
 		Amount:         fmt.Sprintf("%.2f", amount),
 		Breakdown:      breakDowns,
 		Discounts:      discounts,
-		Notes:          dbQuote.Notes,
-		Status:         QuoteStatus(dbQuote.Status),
-		ExpiresAt:      dbQuote.ExpiresAt,
-		CreatedAt:      dbQuote.CreatedAt,
-		UpdatedAt:      dbQuote.UpdatedAt,
-		ServiceIcon:    dbQuote.ServiceIcon,
-		ServiceName:    dbQuote.ServiceName,
-		ServiceID:      dbQuote.ServiceID,
+		PromoIDs:       dbQuote.PromoIds,
+
+		Notes:       dbQuote.Notes,
+		Status:      QuoteStatus(dbQuote.Status),
+		ExpiresAt:   dbQuote.ExpiresAt,
+		CreatedAt:   dbQuote.CreatedAt,
+		UpdatedAt:   dbQuote.UpdatedAt,
+		ServiceIcon: dbQuote.ServiceIcon,
+		ServiceName: dbQuote.ServiceName,
+		ServiceID:   dbQuote.ServiceID,
 	}
 }
 
@@ -333,7 +342,7 @@ func dbPromoToPromo(dbPromo database.Promotion) Promotion {
 		Breakdown:   discounts,
 		IsActive:    dbPromo.IsActive.Bool,
 		StartsAt:    dbPromo.StartsAt.Time,
-		ExpiresAt:   dbPromo.ExpiresAt,
+		ExpiresAt:   dbPromo.ExpiresAt.Time,
 		CreatedAt:   dbPromo.CreatedAt.Time,
 	}
 }

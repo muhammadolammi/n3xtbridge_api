@@ -53,6 +53,7 @@ type Service struct {
 	Icon        string    `json:"icon"`
 	Image       string    `json:"image"`
 	Tags        []string  `json:"tags"`
+	PromoIDs    []string  `json:"promo_ids"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -82,6 +83,7 @@ type Quote struct {
 	Amount         string      `json:"amount"`
 	Breakdown      []Item      `json:"breakdown"`
 	Discounts      []Discount  `json:"discounts"`
+	PromoIDs       []string    `json:"promo_ids"`
 	Notes          string      `json:"notes"`
 	Status         QuoteStatus `json:"status"`
 	ExpiresAt      time.Time   `json:"expires_at"`
@@ -95,17 +97,20 @@ type QuoteRequest struct {
 	ServiceID   uuid.UUID          `json:"service_id"`
 	Description string             `json:"description"`
 	Attachments []string           `json:"attachments"`
+	PromoIDs    []string           `json:"promo_ids"`
 	Status      QuoteRequestStatus `json:"status"`
 	CreatedAt   time.Time          `json:"created_at"`
 	UpdatedAt   time.Time          `json:"updated_at"`
 }
 
 type GetQuoteRequestsRow struct {
-	ID          uuid.UUID          `json:"id"`
-	UserID      uuid.UUID          `json:"user_id"`
-	ServiceID   uuid.UUID          `json:"service_id"`
-	Description string             `json:"description"`
-	Attachments []string           `json:"attachments"`
+	ID          uuid.UUID `json:"id"`
+	UserID      uuid.UUID `json:"user_id"`
+	ServiceID   uuid.UUID `json:"service_id"`
+	Description string    `json:"description"`
+	Attachments []string  `json:"attachments"`
+	PromoIDs    []string  `json:"promo_ids"`
+
 	Status      QuoteRequestStatus `json:"status"`
 	CreatedAt   time.Time          `json:"created_at"`
 	UpdatedAt   time.Time          `json:"updated_at"`
@@ -115,9 +120,10 @@ type GetQuoteRequestsRow struct {
 }
 
 type GetUserQuoteRequestsRow struct {
-	ID      uuid.UUID `json:"id"`
-	UserID  uuid.UUID `json:"user_id"`
-	QuoteID uuid.UUID `json:"quote_id"`
+	ID       uuid.UUID `json:"id"`
+	UserID   uuid.UUID `json:"user_id"`
+	QuoteID  uuid.UUID `json:"quote_id"`
+	PromoIDs []string  `json:"promo_ids"`
 
 	ServiceID   uuid.UUID          `json:"service_id"`
 	Description string             `json:"description"`
@@ -130,20 +136,22 @@ type GetUserQuoteRequestsRow struct {
 }
 
 type GetUserQuotesWithServiceRow struct {
-	ID             uuid.UUID   `json:"id"`
-	UserID         uuid.UUID   `json:"user_id"`
-	QuoteRequestID uuid.UUID   `json:"quote_request_id"`
-	Amount         string      `json:"amount"`
-	Breakdown      []Item      `json:"breakdown"`
-	Discounts      []Discount  `json:"discounts"`
-	Notes          string      `json:"notes"`
-	Status         QuoteStatus `json:"status"`
-	CreatedAt      time.Time   `json:"created_at"`
-	UpdatedAt      time.Time   `json:"updated_at"`
-	ExpiresAt      time.Time   `json:"expires_at"`
-	ServiceIcon    string      `json:"service_icon"`
-	ServiceName    string      `json:"service_name"`
-	ServiceID      uuid.UUID   `json:"service_id"`
+	ID             uuid.UUID  `json:"id"`
+	UserID         uuid.UUID  `json:"user_id"`
+	QuoteRequestID uuid.UUID  `json:"quote_request_id"`
+	Amount         string     `json:"amount"`
+	Breakdown      []Item     `json:"breakdown"`
+	Discounts      []Discount `json:"discounts"`
+	PromoIDs       []string   `json:"promo_ids"`
+
+	Notes       string      `json:"notes"`
+	Status      QuoteStatus `json:"status"`
+	CreatedAt   time.Time   `json:"created_at"`
+	UpdatedAt   time.Time   `json:"updated_at"`
+	ExpiresAt   time.Time   `json:"expires_at"`
+	ServiceIcon string      `json:"service_icon"`
+	ServiceName string      `json:"service_name"`
+	ServiceID   uuid.UUID   `json:"service_id"`
 }
 
 // invoice
@@ -204,6 +212,6 @@ type Promotion struct {
 	Breakdown   []Discount     `json:"breakdown"`
 	IsActive    bool           `json:"is_active"`
 	StartsAt    time.Time      `json:"starts_at"`
-	ExpiresAt   sql.NullTime   `json:"expires_at"`
+	ExpiresAt   time.Time      `json:"expires_at"`
 	CreatedAt   time.Time      `json:"created_at"`
 }

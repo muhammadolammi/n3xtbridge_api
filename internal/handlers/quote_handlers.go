@@ -22,6 +22,7 @@ func (cfg *Config) CreateQuoteRequestHandler(w http.ResponseWriter, r *http.Requ
 		ServiceName string    `json:"service_name"`
 		Description string    `json:"description"`
 		Attachments []string  `json:"attachments"`
+		PromoIDS    []string  `json:"promo_ids"`
 	}{}
 	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
@@ -44,12 +45,14 @@ func (cfg *Config) CreateQuoteRequestHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	log.Println(input.PromoIDS)
 	quoteRequest, err := cfg.DBQueries.CreateQuoteRequest(r.Context(), database.CreateQuoteRequestParams{
 		UserID:      input.UserID,
 		ServiceName: input.ServiceName,
 		ServiceID:   input.ServiceID,
 		Description: input.Description,
 		Attachments: input.Attachments,
+		PromoIds:    input.PromoIDS,
 	})
 
 	if err != nil {
@@ -57,8 +60,13 @@ func (cfg *Config) CreateQuoteRequestHandler(w http.ResponseWriter, r *http.Requ
 		helpers.RespondWithError(w, http.StatusInternalServerError, "error creating quoterequest")
 		return
 	}
+	res := struct {
+		Qr QuoteRequest `json:"quote_request"`
+	}{
+		Qr: DbQuoteRequestToQuoteRequest(quoteRequest),
+	}
 
-	helpers.RespondWithJson(w, http.StatusOK, DbQuoteRequestToQuoteRequest(quoteRequest))
+	helpers.RespondWithJson(w, http.StatusOK, res)
 
 }
 
@@ -159,6 +167,7 @@ func (cfg *Config) AdminCreateQuoteHandler(w http.ResponseWriter, r *http.Reques
 		Amount         string       `json:"amount"`
 		Breakdown      []DBItem     `json:"breakdown"`
 		Discounts      []DBDiscount `json:"discounts"`
+		PromoIDS       []string     `json:"promo_ids"`
 		Notes          string       `json:"notes"`
 		ExpiresAt      time.Time    `json:"expires_at"`
 	}{}
@@ -181,14 +190,19 @@ func (cfg *Config) AdminCreateQuoteHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if input.Amount == "" {
+		log.Println("here")
+
 		helpers.RespondWithError(w, http.StatusBadRequest, "Amount cannot be empty")
 		return
 	}
 	if len(input.Breakdown) == 0 {
+		log.Println("here")
+
 		helpers.RespondWithError(w, http.StatusBadRequest, "Breakdown must contain at least one item")
 		return
 	}
 	if input.ExpiresAt.IsZero() || input.ExpiresAt.Before(time.Now()) {
+
 		helpers.RespondWithError(w, http.StatusBadRequest, "A valid future expiration date is required")
 		return
 	}
@@ -211,7 +225,8 @@ func (cfg *Config) AdminCreateQuoteHandler(w http.ResponseWriter, r *http.Reques
 		QuoteRequestID: input.QuoteRequestID,
 		UserID:         input.UserID,
 		Amount:         input.Amount,
-		Breakdown:      breakdownJSON, // sqlc expects json.RawMessage/[]byte
+		Breakdown:      breakdownJSON,
+		PromoIds:       input.PromoIDS,
 		Discounts:      discountsJSON,
 		Notes:          input.Notes,
 		ExpiresAt:      input.ExpiresAt,

@@ -3,7 +3,6 @@ package helpers
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -84,6 +83,7 @@ func FinalizePayment(ctx context.Context, db *sql.DB, queries *database.Queries,
 
 	// 1. Update Payment Status
 	payment, err := qtx.GetPaymentByReference(ctx, reference)
+
 	if err != nil {
 		return fmt.Errorf("payment ref not found: %w", err)
 	}
@@ -101,6 +101,20 @@ func FinalizePayment(ctx context.Context, db *sql.DB, queries *database.Queries,
 	err = qtx.MarkInvoiceAsPaid(ctx, payment.InvoiceID)
 	if err != nil {
 		return err
+	}
+	// update invoice quote as paid if invoice if for a quote
+	inv, err := qtx.GetInvoice(ctx, payment.InvoiceID)
+	if err != nil {
+		return err
+	}
+	if inv.QuoteID.Valid {
+		err = qtx.UpdateQuoteStatus(ctx, database.UpdateQuoteStatusParams{
+			ID:     inv.QuoteID.UUID,
+			Status: "paid",
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return tx.Commit()
@@ -124,20 +138,13 @@ func CreatePromotionAndLinkWithService(ctx context.Context, params CreatePromoti
 	}
 
 	// 3. Operation A: Accept the quote
-	currentPromos := []string{}
+	currentPromos := params.Service.ActivePromoIds
 
-	err = json.Unmarshal(params.Service.ActivePromoIds, &currentPromos)
-	if err != nil {
-		return database.Promotion{}, err
-	}
 	currentPromos = append(currentPromos, promo.ID.String())
-	jsonBPromos, err := json.Marshal(&currentPromos)
-	if err != nil {
-		return database.Promotion{}, err
-	}
+
 	err = qtx.UpdateServicePromo(ctx, database.UpdateServicePromoParams{
 		ID:             params.Service.ID,
-		ActivePromoIds: jsonBPromos,
+		ActivePromoIds: currentPromos,
 	})
 	if err != nil {
 		return database.Promotion{}, fmt.Errorf("failed to update service promo: %w", err)

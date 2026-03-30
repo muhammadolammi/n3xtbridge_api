@@ -155,6 +155,7 @@ const (
 	QuoteStatusDeclined QuoteStatus = "declined"
 	QuoteStatusExpired  QuoteStatus = "expired"
 	QuoteStatusInReview QuoteStatus = "in-review"
+	QuoteStatusPaid     QuoteStatus = "paid"
 )
 
 func (e *QuoteStatus) Scan(src interface{}) error {
@@ -248,6 +249,7 @@ type Quote struct {
 	UpdatedAt      time.Time
 	Discounts      json.RawMessage
 	UserID         uuid.UUID
+	PromoIds       []string
 }
 
 type QuoteRequest struct {
@@ -261,6 +263,7 @@ type QuoteRequest struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	Budget      sql.NullString
+	PromoIds    []string
 }
 
 type RefreshToken struct {
@@ -284,7 +287,7 @@ type Service struct {
 	Image          string
 	Tags           []string
 	CreatedAt      time.Time
-	ActivePromoIds json.RawMessage
+	ActivePromoIds []string
 }
 
 type User struct {

@@ -79,7 +79,7 @@ func server(apiConfig *handlers.Config) {
 		// general routes
 		r.Patch("/customer/quotes/{id}/status", apiConfig.CustomerUpdateQuoteStatusHandler)
 		r.Post("/customer/payments/{id}", apiConfig.InitializePaymentHandler)
-		r.Post("/customer/payments/verify/{ref}", apiConfig.VerifyPaymentStatusHandler)
+		r.Get("/customer/payments/verify/{ref}", apiConfig.VerifyPaymentStatusHandler)
 
 	})
 
