@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const countActivePromos = `-- name: CountActivePromos :one
@@ -265,10 +266,10 @@ UPDATE services SET active_promo_ids = $2 WHERE id = $1
 
 type UpdateServicePromoParams struct {
 	ID             uuid.UUID
-	ActivePromoIds json.RawMessage
+	ActivePromoIds []string
 }
 
 func (q *Queries) UpdateServicePromo(ctx context.Context, arg UpdateServicePromoParams) error {
-	_, err := q.db.ExecContext(ctx, updateServicePromo, arg.ID, arg.ActivePromoIds)
+	_, err := q.db.ExecContext(ctx, updateServicePromo, arg.ID, pq.Array(arg.ActivePromoIds))
 	return err
 }

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const countQuotes = `-- name: CountQuotes :one
@@ -39,9 +40,9 @@ func (q *Queries) CountUserQuotes(ctx context.Context, userID uuid.UUID) (int64,
 }
 
 const createQuote = `-- name: CreateQuote :one
-INSERT INTO quotes (quote_request_id,user_id, amount, breakdown,discounts, notes, expires_at)
-VALUES ($1, $2, $3, $4, $5,$6,$7)
-RETURNING id, quote_request_id, amount, breakdown, notes, status, expires_at, created_at, updated_at, discounts, user_id
+INSERT INTO quotes (quote_request_id,user_id, amount, breakdown,discounts, notes, expires_at, promo_ids)
+VALUES ($1, $2, $3, $4, $5,$6,$7, $8)
+RETURNING id, quote_request_id, amount, breakdown, notes, status, expires_at, created_at, updated_at, discounts, user_id, promo_ids
 `
 
 type CreateQuoteParams struct {
@@ -52,6 +53,7 @@ type CreateQuoteParams struct {
 	Discounts      json.RawMessage
 	Notes          string
 	ExpiresAt      time.Time
+	PromoIds       []string
 }
 
 func (q *Queries) CreateQuote(ctx context.Context, arg CreateQuoteParams) (Quote, error) {
@@ -63,6 +65,7 @@ func (q *Queries) CreateQuote(ctx context.Context, arg CreateQuoteParams) (Quote
 		arg.Discounts,
 		arg.Notes,
 		arg.ExpiresAt,
+		pq.Array(arg.PromoIds),
 	)
 	var i Quote
 	err := row.Scan(
@@ -77,6 +80,7 @@ func (q *Queries) CreateQuote(ctx context.Context, arg CreateQuoteParams) (Quote
 		&i.UpdatedAt,
 		&i.Discounts,
 		&i.UserID,
+		pq.Array(&i.PromoIds),
 	)
 	return i, err
 }
@@ -109,7 +113,7 @@ func (q *Queries) GetInvoiceByQuoteID(ctx context.Context, quoteID uuid.NullUUID
 }
 
 const getQuote = `-- name: GetQuote :one
-SELECT id, quote_request_id, amount, breakdown, notes, status, expires_at, created_at, updated_at, discounts, user_id FROM quotes
+SELECT id, quote_request_id, amount, breakdown, notes, status, expires_at, created_at, updated_at, discounts, user_id, promo_ids FROM quotes
 WHERE id=$1
 `
 
@@ -128,12 +132,13 @@ func (q *Queries) GetQuote(ctx context.Context, id uuid.UUID) (Quote, error) {
 		&i.UpdatedAt,
 		&i.Discounts,
 		&i.UserID,
+		pq.Array(&i.PromoIds),
 	)
 	return i, err
 }
 
 const getQuotes = `-- name: GetQuotes :many
-SELECT    q.id, q.quote_request_id, q.amount, q.breakdown, q.notes, q.status, q.expires_at, q.created_at, q.updated_at, q.discounts, q.user_id, 
+SELECT    q.id, q.quote_request_id, q.amount, q.breakdown, q.notes, q.status, q.expires_at, q.created_at, q.updated_at, q.discounts, q.user_id, q.promo_ids, 
     s.name as service_name,
     s.icon as service_icon
 FROM quotes q 
@@ -159,6 +164,7 @@ type GetQuotesRow struct {
 	UpdatedAt      time.Time
 	Discounts      json.RawMessage
 	UserID         uuid.UUID
+	PromoIds       []string
 	ServiceName    string
 	ServiceIcon    string
 }
@@ -184,6 +190,7 @@ func (q *Queries) GetQuotes(ctx context.Context, arg GetQuotesParams) ([]GetQuot
 			&i.UpdatedAt,
 			&i.Discounts,
 			&i.UserID,
+			pq.Array(&i.PromoIds),
 			&i.ServiceName,
 			&i.ServiceIcon,
 		); err != nil {
@@ -202,7 +209,7 @@ func (q *Queries) GetQuotes(ctx context.Context, arg GetQuotesParams) ([]GetQuot
 
 const getUserQuoteWithService = `-- name: GetUserQuoteWithService :one
 SELECT 
-    q.id, q.quote_request_id, q.amount, q.breakdown, q.notes, q.status, q.expires_at, q.created_at, q.updated_at, q.discounts, q.user_id, 
+    q.id, q.quote_request_id, q.amount, q.breakdown, q.notes, q.status, q.expires_at, q.created_at, q.updated_at, q.discounts, q.user_id, q.promo_ids, 
     s.name as service_name,
     s.icon as service_icon,
     s.id as service_id
@@ -229,6 +236,7 @@ type GetUserQuoteWithServiceRow struct {
 	UpdatedAt      time.Time
 	Discounts      json.RawMessage
 	UserID         uuid.UUID
+	PromoIds       []string
 	ServiceName    string
 	ServiceIcon    string
 	ServiceID      uuid.UUID
@@ -249,6 +257,7 @@ func (q *Queries) GetUserQuoteWithService(ctx context.Context, arg GetUserQuoteW
 		&i.UpdatedAt,
 		&i.Discounts,
 		&i.UserID,
+		pq.Array(&i.PromoIds),
 		&i.ServiceName,
 		&i.ServiceIcon,
 		&i.ServiceID,
@@ -258,7 +267,7 @@ func (q *Queries) GetUserQuoteWithService(ctx context.Context, arg GetUserQuoteW
 
 const getUserQuotesWithService = `-- name: GetUserQuotesWithService :many
 SELECT 
-    q.id, q.quote_request_id, q.amount, q.breakdown, q.notes, q.status, q.expires_at, q.created_at, q.updated_at, q.discounts, q.user_id, 
+    q.id, q.quote_request_id, q.amount, q.breakdown, q.notes, q.status, q.expires_at, q.created_at, q.updated_at, q.discounts, q.user_id, q.promo_ids, 
     s.name as service_name,
     s.icon as service_icon,
         s.id as service_id
@@ -266,7 +275,7 @@ SELECT
 FROM quotes q 
 JOIN quote_requests qr ON q.quote_request_id = qr.id
 JOIN services s ON qr.service_id = s.id
-WHERE qr.user_id = $1 AND  q.status IN ('sent', 'accepted', 'declined')
+WHERE qr.user_id = $1 AND  q.status IN ('sent', 'accepted', 'declined','paid')
 ORDER BY q.created_at DESC
 LIMIT $2 OFFSET $3
 `
@@ -289,6 +298,7 @@ type GetUserQuotesWithServiceRow struct {
 	UpdatedAt      time.Time
 	Discounts      json.RawMessage
 	UserID         uuid.UUID
+	PromoIds       []string
 	ServiceName    string
 	ServiceIcon    string
 	ServiceID      uuid.UUID
@@ -315,6 +325,7 @@ func (q *Queries) GetUserQuotesWithService(ctx context.Context, arg GetUserQuote
 			&i.UpdatedAt,
 			&i.Discounts,
 			&i.UserID,
+			pq.Array(&i.PromoIds),
 			&i.ServiceName,
 			&i.ServiceIcon,
 			&i.ServiceID,

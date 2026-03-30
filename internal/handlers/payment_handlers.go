@@ -142,12 +142,14 @@ func (cfg *Config) PaystackWebhookHandler(w http.ResponseWriter, r *http.Request
 				reference,
 				fmt.Sprintf("%d", event.Data.ID),
 			)
+
 			if err != nil {
 				log.Println("❌ Error finalizing local payment:", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 		}
+
 	} else {
 		// --- FORWARD TO JOBMATCH ---
 		log.Printf("🚀 Forwarding Webhook to JobMatch: %s", reference)
@@ -167,6 +169,7 @@ func (cfg *Config) VerifyPaymentStatusHandler(w http.ResponseWriter, r *http.Req
 	if reference == "" {
 		helpers.RespondWithError(w, http.StatusBadRequest, "Missing reference")
 		return
+
 	}
 
 	payment, err := cfg.DBQueries.GetPaymentByReference(r.Context(), reference)

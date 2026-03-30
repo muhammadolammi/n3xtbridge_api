@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS promotions (
 );
 
 -- Link promos to services
-ALTER TABLE services ADD COLUMN IF NOT EXISTS active_promo_ids JSONB NOT NULL DEFAULT '[]'; -- list of promos ids
+ALTER TABLE services ADD COLUMN IF NOT EXISTS active_promo_ids TEXT[] NOT NULL DEFAULT '{}'; -- list of promos ids
 
 -- +goose Down
 ALTER TABLE services DROP COLUMN IF EXISTS active_promo_ids;

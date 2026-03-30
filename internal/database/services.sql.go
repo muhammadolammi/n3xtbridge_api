@@ -74,7 +74,7 @@ func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (S
 		&i.Image,
 		pq.Array(&i.Tags),
 		&i.CreatedAt,
-		&i.ActivePromoIds,
+		pq.Array(&i.ActivePromoIds),
 	)
 	return i, err
 }
@@ -114,7 +114,7 @@ func (q *Queries) GetActiveServices(ctx context.Context, arg GetActiveServicesPa
 			&i.Image,
 			pq.Array(&i.Tags),
 			&i.CreatedAt,
-			&i.ActivePromoIds,
+			pq.Array(&i.ActivePromoIds),
 		); err != nil {
 			return nil, err
 		}
@@ -147,7 +147,7 @@ func (q *Queries) GetService(ctx context.Context, id uuid.UUID) (Service, error)
 		&i.Image,
 		pq.Array(&i.Tags),
 		&i.CreatedAt,
-		&i.ActivePromoIds,
+		pq.Array(&i.ActivePromoIds),
 	)
 	return i, err
 }
@@ -170,7 +170,7 @@ func (q *Queries) GetServiceByName(ctx context.Context, name string) (Service, e
 		&i.Image,
 		pq.Array(&i.Tags),
 		&i.CreatedAt,
-		&i.ActivePromoIds,
+		pq.Array(&i.ActivePromoIds),
 	)
 	return i, err
 }
@@ -209,7 +209,7 @@ func (q *Queries) GetServices(ctx context.Context, arg GetServicesParams) ([]Ser
 			&i.Image,
 			pq.Array(&i.Tags),
 			&i.CreatedAt,
-			&i.ActivePromoIds,
+			pq.Array(&i.ActivePromoIds),
 		); err != nil {
 			return nil, err
 		}
