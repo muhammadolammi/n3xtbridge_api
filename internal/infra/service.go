@@ -8,7 +8,7 @@ import (
 
 	"time"
 
-	goauth "github.com/muhammadolammi/goauth/pkg/auth"
+	"github.com/muhammadolammi/goauth"
 
 	"github.com/muhammadolammi/n3xtbridge_api/internal/auth"
 	"github.com/muhammadolammi/n3xtbridge_api/internal/database"

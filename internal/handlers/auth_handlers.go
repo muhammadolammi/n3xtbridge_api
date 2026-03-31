@@ -52,6 +52,11 @@ func (cfg *Config) SignupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = validatePassword(input.Password)
+	if err != nil {
+		helpers.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	// Hash password
 	passwordHash, err := auth.HashPassword(input.Password)
 	if err != nil {

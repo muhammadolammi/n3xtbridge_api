@@ -11,10 +11,10 @@ import (
 
 // ApplianceDetails represents an appliance item in the order
 type ApplianceDetails struct {
-	Name           string  `json:"name"`
-	Quantity       int     `json:"quantity"`
-	EstimatedCost  float64 `json:"estimated_cost"`
-	PartnerVendor  string  `json:"partner_vendor,omitempty"`
+	Name          string  `json:"name"`
+	Quantity      int     `json:"quantity"`
+	EstimatedCost float64 `json:"estimated_cost"`
+	PartnerVendor string  `json:"partner_vendor,omitempty"`
 }
 
 // Mailer struct holds SMTP configuration
@@ -41,19 +41,19 @@ func NewMailer(server string, port int, username, password, fromEmail, fromName 
 
 // EmailData holds data for email templates
 type EmailData struct {
-	OrderNumber      string
-	CustomerName     string
-	BusinessName     string
-	ServiceType      string
-	TotalAmount      float64
-	TransportFee     float64
-	DeliveryAddress  string
-	Appliances       []ApplianceDetails
-	CreatedAt        time.Time
-	CompanySize      string
-	ReferralSource   string
-	WhatsappPhone    string
-	ContactEmail     string
+	OrderNumber     string
+	CustomerName    string
+	BusinessName    string
+	ServiceType     string
+	TotalAmount     float64
+	TransportFee    float64
+	DeliveryAddress string
+	Appliances      []ApplianceDetails
+	CreatedAt       time.Time
+	CompanySize     string
+	ReferralSource  string
+	WhatsappPhone   string
+	ContactEmail    string
 }
 
 // SendConfirmationEmail sends order confirmation to customer
