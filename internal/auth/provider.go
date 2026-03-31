@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/muhammadolammi/goauth/pkg/auth"
+	"github.com/muhammadolammi/goauth"
 	"github.com/muhammadolammi/n3xtbridge_api/internal/database"
 )
 
@@ -18,27 +18,27 @@ func NewProvider(q *database.Queries) *Provider {
 		q: q,
 	}
 }
-func (p Provider) GetByEmail(ctx context.Context, email string) (*auth.User, error) {
+func (p Provider) GetByEmail(ctx context.Context, email string) (*goauth.User, error) {
 	user, err := p.q.GetUserByEmail(ctx, email)
 	if err != nil {
-		return &auth.User{}, err
+		return &goauth.User{}, err
 	}
-	return &auth.User{
+	return &goauth.User{
 		ID:           user.ID,
 		PasswordHash: user.PasswordHash,
 	}, nil
 }
-func (p Provider) GetByID(ctx context.Context, id uuid.UUID) (*auth.User, error) {
+func (p Provider) GetByID(ctx context.Context, id uuid.UUID) (*goauth.User, error) {
 	user, err := p.q.GetUserByID(ctx, id)
 	if err != nil {
-		return &auth.User{}, err
+		return &goauth.User{}, err
 	}
-	return &auth.User{
+	return &goauth.User{
 		ID:           user.ID,
 		PasswordHash: user.PasswordHash,
 	}, nil
 }
-func (p Provider) CreateRefreshToken(ctx context.Context, arg *auth.CreateRefreshTokenParams) (*auth.RefreshToken, error) {
+func (p Provider) CreateRefreshToken(ctx context.Context, arg *goauth.CreateRefreshTokenParams) (*goauth.RefreshToken, error) {
 	args := database.CreateRefreshTokenParams{
 		UserID:    arg.UserID,
 		ExpiresAt: arg.ExpiresAt,
@@ -46,9 +46,9 @@ func (p Provider) CreateRefreshToken(ctx context.Context, arg *auth.CreateRefres
 	}
 	dbRefreshToken, err := p.q.CreateRefreshToken(ctx, args)
 	if err != nil {
-		return &auth.RefreshToken{}, err
+		return &goauth.RefreshToken{}, err
 	}
-	return &auth.RefreshToken{
+	return &goauth.RefreshToken{
 		ID:         dbRefreshToken.ID,
 		UserID:     dbRefreshToken.UserID,
 		Token:      dbRefreshToken.Token,
@@ -58,12 +58,12 @@ func (p Provider) CreateRefreshToken(ctx context.Context, arg *auth.CreateRefres
 		ExpiresAt:  dbRefreshToken.ExpiresAt,
 	}, nil
 }
-func (p Provider) GetRefreshToken(ctx context.Context, token string) (*auth.RefreshToken, error) {
+func (p Provider) GetRefreshToken(ctx context.Context, token string) (*goauth.RefreshToken, error) {
 	dbRefreshToken, err := p.q.GetRefreshToken(ctx, token)
 	if err != nil {
-		return &auth.RefreshToken{}, err
+		return &goauth.RefreshToken{}, err
 	}
-	return &auth.RefreshToken{
+	return &goauth.RefreshToken{
 		ID:         dbRefreshToken.ID,
 		UserID:     dbRefreshToken.UserID,
 		Token:      dbRefreshToken.Token,
@@ -74,7 +74,7 @@ func (p Provider) GetRefreshToken(ctx context.Context, token string) (*auth.Refr
 	}, nil
 }
 
-func (p Provider) UpdateRefreshToken(ctx context.Context, arg *auth.UpdateRefreshTokenParams) error {
+func (p Provider) UpdateRefreshToken(ctx context.Context, arg *goauth.UpdateRefreshTokenParams) error {
 	err := p.q.UpdateRefreshToken(ctx, database.UpdateRefreshTokenParams{
 		ID:         arg.ID,
 		ReplacedBy: arg.ReplacedBy,
