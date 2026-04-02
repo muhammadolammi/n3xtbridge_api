@@ -54,7 +54,6 @@ func (m *Mailer) SendMail(to, fromName, fromEmail, subject, body string) error {
 		HTML:    []byte(body),
 		Headers: textproto.MIMEHeader{},
 	}
-	email.Headers.Set("From", fromFormatted)
 	auth := smtp.PlainAuth("", m.Username, m.Password, m.Server)
 	err := email.Send(m.Server+":"+m.Port, auth)
 	if err != nil {

@@ -70,7 +70,7 @@ func (cfg *Config) CreateInvoiceHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	log.Printf("Admin %v created invoice: %s", user.Email, dbInvoice.InvoiceNumber)
+	log.Printf("Admin %v created invoice: %s for %s", user.Email, dbInvoice.InvoiceNumber, dbInvoice.CustomerEmail)
 	inv := dbInvoicetoInvoice(dbInvoice)
 
 	// // send a mail to the customer
