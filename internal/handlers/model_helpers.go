@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/muhammadolammi/n3xtbridge_api/internal/database"
+	"github.com/muhammadolammi/n3xtbridge_api/shared"
 )
 
 func dbUserToUser(dbUser database.User) User {
@@ -27,10 +28,10 @@ func dbUserToUser(dbUser database.User) User {
 
 }
 
-func DbDiscountToDiscount(dbDiscount DBDiscount) Discount {
+func DbDiscountToDiscount(dbDiscount DBDiscount) shared.Discount {
 	amount, _ := strconv.ParseFloat(dbDiscount.Amount, 64)
 
-	return Discount{
+	return shared.Discount{
 		Name:        dbDiscount.Name,
 		Amount:      amount,
 		Description: dbDiscount.Description,
@@ -39,27 +40,27 @@ func DbDiscountToDiscount(dbDiscount DBDiscount) Discount {
 	}
 }
 
-func DbDiscountsToDiscounts(dbDiscounts []DBDiscount) []Discount {
-	res := []Discount{}
+func DbDiscountsToDiscounts(dbDiscounts []DBDiscount) []shared.Discount {
+	res := []shared.Discount{}
 	for _, dbDiscount := range dbDiscounts {
 		res = append(res, DbDiscountToDiscount(dbDiscount))
 	}
 	return res
 }
 
-func DbItemToItem(dbItem DBItem) Item {
+func DbItemToItem(dbItem DBItem) shared.Item {
 
 	price, _ := strconv.ParseFloat(dbItem.Price, 64)
 
-	return Item{
+	return shared.Item{
 		Name:        dbItem.Name,
 		Price:       price,
 		Quantity:    dbItem.Quantity,
 		Description: dbItem.Description,
 	}
 }
-func DbItemsToItems(dbItems []DBItem) []Item {
-	res := []Item{}
+func DbItemsToItems(dbItems []DBItem) []shared.Item {
+	res := []shared.Item{}
 	for _, dbItem := range dbItems {
 		res = append(res, DbItemToItem(dbItem))
 	}
@@ -81,22 +82,25 @@ func dbInvoicetoInvoice(dbInvoice database.Invoice) Invoice {
 	items := DbItemsToItems(dbItems)
 	discounts := DbDiscountsToDiscounts(dbDiscounts)
 	total, _ := strconv.ParseFloat(dbInvoice.Total, 64)
+
 	return Invoice{
-		ID:            dbInvoice.ID,
-		QuoteID:       dbInvoice.QuoteID.UUID,
-		InvoiceNumber: dbInvoice.InvoiceNumber,
-		UserId:        dbInvoice.UserID,
-		CustomerName:  dbInvoice.CustomerName,
-		CustomerEmail: dbInvoice.CustomerEmail,
-		CustomerPhone: dbInvoice.CustomerPhone.String,
-		Items:         items,
-		Discounts:     discounts,
-		Total:         float64(total),
-		Notes:         dbInvoice.Notes,
-		Status:        dbInvoice.Status,
-		UpdatedAt:     dbInvoice.UpdatedAt,
-		CreatedAt:     dbInvoice.CreatedAt,
-		DeletedAt:     dbInvoice.DeletedAt,
+		ID:             dbInvoice.ID,
+		QuoteID:        dbInvoice.QuoteID.UUID,
+		InvoiceNumber:  dbInvoice.InvoiceNumber,
+		UserId:         dbInvoice.UserID,
+		CustomerName:   dbInvoice.CustomerName,
+		CustomerEmail:  dbInvoice.CustomerEmail,
+		CustomerPhone:  dbInvoice.CustomerPhone.String,
+		Items:          items,
+		Discounts:      discounts,
+		Total:          float64(total),
+		Notes:          dbInvoice.Notes,
+		Status:         dbInvoice.Status,
+		PaymentToken:   dbInvoice.PaymentToken,
+		UpdatedAt:      dbInvoice.UpdatedAt,
+		CreatedAt:      dbInvoice.CreatedAt,
+		DeletedAt:      dbInvoice.DeletedAt,
+		ReminderSentAt: dbInvoice.ReminderSentAt.Time,
 	}
 
 }

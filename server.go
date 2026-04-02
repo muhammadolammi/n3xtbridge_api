@@ -60,6 +60,10 @@ func server(apiConfig *handlers.Config) {
 	protectedRoute.Get("/promotions", apiConfig.GetActivePromosHandler)
 	protectedRoute.Get("/promotions/{id}", apiConfig.GetPromoHandler)
 	protectedRoute.Get("/promotions/verify/{code}", apiConfig.VerifyPromoHandler)
+	protectedRoute.Get("/p/invoices/{id}", apiConfig.PublicGetInvoiceHandler)
+	protectedRoute.Post("/payments/{id}", apiConfig.InitializePaymentHandler)
+	protectedRoute.Get("/payments/verify/{ref}", apiConfig.VerifyPaymentStatusHandler)
+
 	// Authenticated Auth routes
 	protectedRoute.Group(func(r chi.Router) {
 		r.Use(apiConfig.AuthService.RequireAuth)
@@ -73,13 +77,12 @@ func server(apiConfig *handlers.Config) {
 		// /quotes/:id/accept
 		r.Get("/customer/invoices", apiConfig.GetCustomerInvoicesHandler)
 		r.Get("/invoices/{id}", apiConfig.GetInvoiceHandler)
+
 		r.Get("/quotes/invoices/{id}", apiConfig.GetQuoteInvoiceHandler)
 
 		r.Patch("/customer/quotes/requests/{id}/description", apiConfig.UpdateUserQuoteRequestDescriptionHandler)
 		// general routes
 		r.Patch("/customer/quotes/{id}/status", apiConfig.CustomerUpdateQuoteStatusHandler)
-		r.Post("/customer/payments/{id}", apiConfig.InitializePaymentHandler)
-		r.Get("/customer/payments/verify/{ref}", apiConfig.VerifyPaymentStatusHandler)
 
 	})
 
@@ -105,6 +108,7 @@ func server(apiConfig *handlers.Config) {
 		r.Patch("/admin/quotes/{id}/status", apiConfig.AdminUpdateQuoteStatusHandler)
 		r.Post("/admin/promotions", apiConfig.AdminCreatePromotionHandler)
 		r.Get("/admin/promotions", apiConfig.AdminListPromotionsHandler)
+		r.Post("/admin/mail/invoices/{id}", apiConfig.AdminSendInvoiceEmailHandler)
 
 	})
 

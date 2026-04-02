@@ -10,7 +10,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -24,22 +23,37 @@ import (
 func (cfg *Config) InitializePaymentHandler(w http.ResponseWriter, r *http.Request) {
 	// 1. Get Invoice ID from URL or Body
 	invoiceID := chi.URLParam(r, "id")
+	guestToken := r.URL.Query().Get("token") // Get token from query string
 
-	// 2. Fetch Invoice from DB to get total
 	inv, err := cfg.DBQueries.GetInvoice(r.Context(), uuid.MustParse(invoiceID))
 	if err != nil {
 		helpers.RespondWithError(w, http.StatusNotFound, "Invoice not found")
 		return
 	}
+
+	isAuthorized := false
+
 	// lets make some verification
-	user, httpStatus, err := cfg.getUserFromReq(r)
-	if err != nil {
-		helpers.RespondWithError(w, httpStatus, err.Error())
-		return
+	user, _, err := cfg.getUserFromReq(r)
+	if err == nil && user.ID != uuid.Nil {
+		// If logged in, email must match
+		if user.Email == inv.CustomerEmail {
+			isAuthorized = true
+		} else {
+			helpers.RespondWithError(w, http.StatusUnauthorized, "This invoice does not belong to your account.")
+			return
+		}
 	}
-	if user.Email != inv.CustomerEmail {
-		helpers.RespondWithError(w, http.StatusUnauthorized, "trying to pay another user's invoice")
-		// ahh aha hahha hahhh we should probably leave this, you know :)
+	if !isAuthorized {
+		if guestToken != "" && guestToken == inv.PaymentToken {
+			isAuthorized = true
+			log.Printf("Guest access granted for Invoice %s via token", inv.InvoiceNumber)
+		}
+	}
+
+	if !isAuthorized {
+		log.Println("Invalid session or payment token on init payment for invoice : ", inv.InvoiceNumber)
+		helpers.RespondWithError(w, http.StatusUnauthorized, "Invalid session or payment token.")
 		return
 	}
 	if inv.Status == "paid" {
@@ -49,48 +63,16 @@ func (cfg *Config) InitializePaymentHandler(w http.ResponseWriter, r *http.Reque
 
 	existingPayment, err := cfg.DBQueries.GetLatestPendingPayment(r.Context(), inv.ID)
 	if err == nil {
-		// If the payment is recent (e.g., < 1 hour), we could technically
-		// redirect them back, BUT Paystack links expire.
-		// Safer approach: If they have a pending one, we let them create a
-		// NEW reference but we mark the OLD one as 'cancelled'.
+
 		log.Printf("Superseding old payment attempt: %s", existingPayment.Reference)
 		_ = cfg.DBQueries.UpdatePaymentStatus(r.Context(), database.UpdatePaymentStatusParams{
 			Reference: existingPayment.Reference,
 			Status:    "cancelled",
 		})
 	}
-
-	// 3. Generate a unique Reference (Very important for Paystack)
-	// Format: N3XT-INV-UUID-TIMESTAMP
-	reference := fmt.Sprintf("N3XT-%s-%d", inv.InvoiceNumber, time.Now().Unix())
-
-	// 4. Create PENDING payment in your DB (SQLC query needed here)
-	// This is the "Resiliency" step. If they fail to pay, we have the record.
-	_, err = cfg.DBQueries.CreatePayment(r.Context(), database.CreatePaymentParams{
-		InvoiceID: inv.ID,
-		Amount:    inv.Total,
-		Reference: reference,
-		Status:    "pending",
-	})
-
-	// 5. Initialize with Paystack
-	total, _ := strconv.ParseFloat(inv.Total, 64)
-	callBackUrlBase := "http://localhost:5173"
-	if cfg.IsProd {
-		callBackUrlBase = "https://n3xtbridge.com"
-
-	}
-
-	paystackResp, err := cfg.Paystack.InitializeTransaction(payment.TransactionInitRequest{
-		Email:     inv.CustomerEmail,
-		Amount:    int64(total * 100), // Convert Naira to Kobo
-		Reference: reference,
-		Currency:  "NGN",
-		Callback:  fmt.Sprintf("%s/dashboard/payment-success", callBackUrlBase),
-	})
-
+	paystackResp, httpStatus, err := cfg.getInvoiceCheckoutURL(inv, r.Context())
 	if err != nil {
-		helpers.RespondWithError(w, http.StatusInternalServerError, "Paystack init failed")
+		helpers.RespondWithError(w, httpStatus, err.Error())
 		return
 	}
 

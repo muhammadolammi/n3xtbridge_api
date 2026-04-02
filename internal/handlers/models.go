@@ -7,7 +7,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/muhammadolammi/goauth"
 	"github.com/muhammadolammi/n3xtbridge_api/internal/database"
+	"github.com/muhammadolammi/n3xtbridge_api/internal/mailer"
 	payment "github.com/muhammadolammi/n3xtbridge_api/internal/payments"
+	"github.com/muhammadolammi/n3xtbridge_api/shared"
 )
 
 type Config struct {
@@ -21,13 +23,8 @@ type Config struct {
 	PaystackSecret string
 	IsProd         bool
 	// Email configuration (Zoho SMTP)
-	SMTPServer   string
-	SMTPPort     int
-	SMTPUsername string
-	SMTPPassword string
-	FromEmail    string
-	FromName     string
-	AuthService  *goauth.AuthService
+	EmailSender *mailer.Mailer
+	AuthService *goauth.AuthService
 }
 
 type User struct {
@@ -77,18 +74,18 @@ const (
 )
 
 type Quote struct {
-	ID             uuid.UUID   `json:"id"`
-	UserID         uuid.UUID   `json:"user_id"`
-	QuoteRequestID uuid.UUID   `json:"quote_request_id"`
-	Amount         string      `json:"amount"`
-	Breakdown      []Item      `json:"breakdown"`
-	Discounts      []Discount  `json:"discounts"`
-	PromoIDs       []string    `json:"promo_ids"`
-	Notes          string      `json:"notes"`
-	Status         QuoteStatus `json:"status"`
-	ExpiresAt      time.Time   `json:"expires_at"`
-	CreatedAt      time.Time   `json:"created_at"`
-	UpdatedAt      time.Time   `json:"updated_at"`
+	ID             uuid.UUID         `json:"id"`
+	UserID         uuid.UUID         `json:"user_id"`
+	QuoteRequestID uuid.UUID         `json:"quote_request_id"`
+	Amount         string            `json:"amount"`
+	Breakdown      []shared.Item     `json:"breakdown"`
+	Discounts      []shared.Discount `json:"discounts"`
+	PromoIDs       []string          `json:"promo_ids"`
+	Notes          string            `json:"notes"`
+	Status         QuoteStatus       `json:"status"`
+	ExpiresAt      time.Time         `json:"expires_at"`
+	CreatedAt      time.Time         `json:"created_at"`
+	UpdatedAt      time.Time         `json:"updated_at"`
 }
 
 type QuoteRequest struct {
@@ -136,13 +133,13 @@ type GetUserQuoteRequestsRow struct {
 }
 
 type GetUserQuotesWithServiceRow struct {
-	ID             uuid.UUID  `json:"id"`
-	UserID         uuid.UUID  `json:"user_id"`
-	QuoteRequestID uuid.UUID  `json:"quote_request_id"`
-	Amount         string     `json:"amount"`
-	Breakdown      []Item     `json:"breakdown"`
-	Discounts      []Discount `json:"discounts"`
-	PromoIDs       []string   `json:"promo_ids"`
+	ID             uuid.UUID         `json:"id"`
+	UserID         uuid.UUID         `json:"user_id"`
+	QuoteRequestID uuid.UUID         `json:"quote_request_id"`
+	Amount         string            `json:"amount"`
+	Breakdown      []shared.Item     `json:"breakdown"`
+	Discounts      []shared.Discount `json:"discounts"`
+	PromoIDs       []string          `json:"promo_ids"`
 
 	Notes       string      `json:"notes"`
 	Status      QuoteStatus `json:"status"`
@@ -155,20 +152,6 @@ type GetUserQuotesWithServiceRow struct {
 }
 
 // invoice
-type Item struct {
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
-	Quantity    float64 `json:"quantity"`
-	Price       float64 `json:"price"`
-}
-
-type Discount struct {
-	Name        string  `json:"name"`
-	Amount      float64 `json:"amount"`
-	Type        string  `json:"type"`
-	Description string  `json:"description"`
-	ItemName    string  `json:"item_name"`
-}
 
 type DBItem struct {
 	Name        string  `json:"name"`
@@ -186,32 +169,33 @@ type DBDiscount struct {
 }
 
 type Invoice struct {
-	ID            uuid.UUID    `json:"id"`
-	UserId        uuid.UUID    `json:"user_id"`
-	QuoteID       uuid.UUID    `json:"quote_id"`
-	CustomerName  string       `json:"customer_name"`
-	InvoiceNumber string       `json:"invoice_number"`
-	CustomerEmail string       `json:"customer_email"`
-	CustomerPhone string       `json:"customer_phone"`
-	Items         []Item       `json:"items"`
-	Discounts     []Discount   `json:"discounts"`
-	Total         float64      `json:"total"`
-	Notes         string       `json:"notes"`
-	Status        string       `json:"status"`
-	CreatedAt     time.Time    `json:"created_at"`
-	DeletedAt     sql.NullTime `json:"deleted_at"`
-
-	UpdatedAt time.Time `json:"updated_at"`
+	ID             uuid.UUID         `json:"id"`
+	UserId         uuid.UUID         `json:"user_id"`
+	QuoteID        uuid.UUID         `json:"quote_id"`
+	CustomerName   string            `json:"customer_name"`
+	InvoiceNumber  string            `json:"invoice_number"`
+	CustomerEmail  string            `json:"customer_email"`
+	CustomerPhone  string            `json:"customer_phone"`
+	Items          []shared.Item     `json:"items"`
+	Discounts      []shared.Discount `json:"discounts"`
+	Total          float64           `json:"total"`
+	Notes          string            `json:"notes"`
+	Status         string            `json:"status"`
+	CreatedAt      time.Time         `json:"created_at"`
+	DeletedAt      sql.NullTime      `json:"deleted_at"`
+	PaymentToken   string            `json:"payment_token"`
+	ReminderSentAt time.Time         `json:"reminder_sent_at"`
+	UpdatedAt      time.Time         `json:"updated_at"`
 }
 
 type Promotion struct {
-	ID          uuid.UUID      `json:"id"`
-	Code        string         `json:"code"`
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	Breakdown   []Discount     `json:"breakdown"`
-	IsActive    bool           `json:"is_active"`
-	StartsAt    time.Time      `json:"starts_at"`
-	ExpiresAt   time.Time      `json:"expires_at"`
-	CreatedAt   time.Time      `json:"created_at"`
+	ID          uuid.UUID         `json:"id"`
+	Code        string            `json:"code"`
+	Name        string            `json:"name"`
+	Description sql.NullString    `json:"description"`
+	Breakdown   []shared.Discount `json:"breakdown"`
+	IsActive    bool              `json:"is_active"`
+	StartsAt    time.Time         `json:"starts_at"`
+	ExpiresAt   time.Time         `json:"expires_at"`
+	CreatedAt   time.Time         `json:"created_at"`
 }
