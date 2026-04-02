@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -49,12 +49,7 @@ func (cfg *Config) CreateInvoiceHandler(w http.ResponseWriter, r *http.Request) 
 		helpers.RespondWithError(w, http.StatusBadRequest, "error converting discounts to jsonb")
 		return
 	}
-	// fmt.Printf("Received Discounts: %+v\n", input.Discounts)
-	// fmt.Printf("Marshalled Discounts: %+v\n", string(jsonBDiscounts))
-
-	// helpers.RespondWithError(w, http.StatusInternalServerError, "")
-	// return
-
+	paymentToken := base64.URLEncoding.EncodeToString([]byte(uuid.New().String()))
 	dbParams := database.CreateInvoiceParams{
 		InvoiceNumber: GenerateInvoiceNumber(),
 		UserID:        user.ID,
@@ -65,18 +60,63 @@ func (cfg *Config) CreateInvoiceHandler(w http.ResponseWriter, r *http.Request) 
 		Notes:         input.Notes,
 		Discounts:     jsonBDiscounts,
 		Items:         jsonBItems,
+		PaymentToken:  paymentToken,
 	}
 
-	// Save invoice to database
-	ctx := context.Background()
-	dbInvoice, err := cfg.DBQueries.CreateInvoice(ctx, dbParams)
+	dbInvoice, err := cfg.DBQueries.CreateInvoice(r.Context(), dbParams)
 	if err != nil {
 		log.Println("failed to save invoice: " + err.Error())
 		helpers.RespondWithError(w, http.StatusInternalServerError, "failed to save invoice: ")
 		return
 	}
 
+	log.Printf("Admin %v created invoice: %s", user.Email, dbInvoice.InvoiceNumber)
+	inv := dbInvoicetoInvoice(dbInvoice)
+
+	// // send a mail to the customer
+	// go func() {
+	// 	err := cfg.EmailSender.SendInvoice(mailer.InvoiceData{
+	// 		InvoiceNumber: inv.InvoiceNumber,
+	// 		CustomerName:  inv.CustomerName,
+	// 		CustomerEmail: inv.CustomerEmail,
+	// 		Items:         inv.Items,
+	// 		Discounts:     inv.Discounts,
+	// 		Total:         inv.Total,
+	// 		Notes:         input.Notes,
+	// 		PaymentLink:   invoiceURL,
+	// 	})
+	// 	if err != nil {
+	// 		log.Println("error sending invoice email: " + err.Error())
+	// 	} else {
+	// 		log.Printf("Invoice email sent to %s for invoice %s", inv.CustomerEmail, inv.InvoiceNumber)
+	// 	}
+
+	// }()
+	go sendInvoiceEmail(cfg, inv)
+
 	helpers.RespondWithJson(w, http.StatusCreated, dbInvoicetoInvoice(dbInvoice))
+}
+
+func (cfg *Config) PublicGetInvoiceHandler(w http.ResponseWriter, r *http.Request) {
+	invoiceId := chi.URLParam(r, "id")
+	if invoiceId == "" {
+		helpers.RespondWithError(w, http.StatusBadRequest, "")
+		return
+	}
+
+	parsedId, err := uuid.Parse(invoiceId)
+	if err != nil {
+		helpers.RespondWithError(w, http.StatusBadRequest, "error parsing id")
+		return
+	}
+	invoice, err := cfg.DBQueries.GetInvoice(r.Context(), parsedId)
+	if err != nil {
+		log.Println("DB ERROR error getting invoice: " + err.Error())
+		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting invoice")
+		return
+	}
+
+	helpers.RespondWithJson(w, http.StatusOK, dbInvoicetoInvoice(invoice))
 }
 
 func (cfg *Config) GetInvoiceHandler(w http.ResponseWriter, r *http.Request) {
@@ -283,4 +323,50 @@ func (cfg *Config) AdminListAllInvoicesHandler(w http.ResponseWriter, r *http.Re
 	}
 	log.Println(res.Invoices)
 	helpers.RespondWithJson(w, http.StatusOK, res)
+}
+
+func (cfg *Config) AdminSendInvoiceEmailHandler(w http.ResponseWriter, r *http.Request) {
+	invoiceId := chi.URLParam(r, "id")
+	if invoiceId == "" {
+		helpers.RespondWithError(w, http.StatusBadRequest, "")
+		return
+	}
+
+	parsedId, err := uuid.Parse(invoiceId)
+	if err != nil {
+		helpers.RespondWithError(w, http.StatusBadRequest, "error parsing id")
+		return
+	}
+	invoice, err := cfg.DBQueries.GetInvoice(r.Context(), parsedId)
+	if err != nil {
+		log.Println("DB ERROR error getting invoice: " + err.Error())
+		helpers.RespondWithError(w, http.StatusInternalServerError, "error getting invoice")
+		return
+	}
+
+	inv := dbInvoicetoInvoice(invoice)
+
+	// send a mail to the customer
+	// go func() {
+	// 	err := cfg.EmailSender.SendInvoice(mailer.InvoiceData{
+	// 		InvoiceNumber: inv.InvoiceNumber,
+	// 		CustomerName:  inv.CustomerName,
+	// 		CustomerEmail: inv.CustomerEmail,
+	// 		Items:         inv.Items,
+	// 		Discounts:     inv.Discounts,
+	// 		Total:         inv.Total,
+	// 		Notes:         inv.Notes,
+	// 		PaymentLink:   invoiceURL,
+	// 		Date:          inv.CreatedAt.String(),
+	// 	})
+	// 	if err != nil {
+	// 		log.Println("error sending invoice email reminder: " + err.Error())
+	// 	} else {
+	// 		// UPDATE
+	// 		log.Printf("Invoice email reminder sent to %s for invoice %s", inv.CustomerEmail, inv.InvoiceNumber)
+	// 	}
+	// }()
+	go sendInvoiceEmail(cfg, inv)
+
+	helpers.RespondWithJson(w, http.StatusOK, map[string]string{"message": "reminder email dispatched"})
 }

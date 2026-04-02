@@ -1,8 +1,8 @@
 -- name: CreateInvoice :one
 INSERT INTO invoices (
-    invoice_number, customer_name, customer_email, customer_phone, total, notes , items , discounts, user_id
+    invoice_number, customer_name, customer_email, customer_phone, total, notes , items , discounts, user_id, payment_token
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7,$8,$9
+    $1, $2, $3, $4, $5, $6, $7,$8,$9, $10
 ) RETURNING *;
 
 -- name: CreateInvoiceWithQuote :one
@@ -65,4 +65,10 @@ WHERE id = $1 AND customer_email = $2;
 -- name: MarkInvoiceAsPaid :exec
 UPDATE invoices 
 SET status = 'paid', updated_at = NOW()
+WHERE id = $1;
+
+
+-- name: UpdateInvoiceReminderSentAt :exec
+UPDATE invoices
+SET reminder_sent_at = NOW(), updated_at = NOW()
 WHERE id = $1;

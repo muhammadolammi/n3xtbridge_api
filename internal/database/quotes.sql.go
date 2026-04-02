@@ -86,7 +86,7 @@ func (q *Queries) CreateQuote(ctx context.Context, arg CreateQuoteParams) (Quote
 }
 
 const getInvoiceByQuoteID = `-- name: GetInvoiceByQuoteID :one
-SELECT id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at FROM invoices WHERE quote_id = $1
+SELECT id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at, payment_token, reminder_sent_at FROM invoices WHERE quote_id = $1
 `
 
 func (q *Queries) GetInvoiceByQuoteID(ctx context.Context, quoteID uuid.NullUUID) (Invoice, error) {
@@ -108,6 +108,8 @@ func (q *Queries) GetInvoiceByQuoteID(ctx context.Context, quoteID uuid.NullUUID
 		&i.Status,
 		&i.QuoteID,
 		&i.DeletedAt,
+		&i.PaymentToken,
+		&i.ReminderSentAt,
 	)
 	return i, err
 }

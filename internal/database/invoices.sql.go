@@ -51,10 +51,10 @@ func (q *Queries) CountWorkersCreatedInvoices(ctx context.Context, userID uuid.U
 
 const createInvoice = `-- name: CreateInvoice :one
 INSERT INTO invoices (
-    invoice_number, customer_name, customer_email, customer_phone, total, notes , items , discounts, user_id
+    invoice_number, customer_name, customer_email, customer_phone, total, notes , items , discounts, user_id, payment_token
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7,$8,$9
-) RETURNING id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at
+    $1, $2, $3, $4, $5, $6, $7,$8,$9, $10
+) RETURNING id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at, payment_token, reminder_sent_at
 `
 
 type CreateInvoiceParams struct {
@@ -67,6 +67,7 @@ type CreateInvoiceParams struct {
 	Items         json.RawMessage
 	Discounts     json.RawMessage
 	UserID        uuid.UUID
+	PaymentToken  string
 }
 
 func (q *Queries) CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (Invoice, error) {
@@ -80,6 +81,7 @@ func (q *Queries) CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (I
 		arg.Items,
 		arg.Discounts,
 		arg.UserID,
+		arg.PaymentToken,
 	)
 	var i Invoice
 	err := row.Scan(
@@ -98,6 +100,8 @@ func (q *Queries) CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (I
 		&i.Status,
 		&i.QuoteID,
 		&i.DeletedAt,
+		&i.PaymentToken,
+		&i.ReminderSentAt,
 	)
 	return i, err
 }
@@ -107,7 +111,7 @@ INSERT INTO invoices (
     invoice_number, customer_name, customer_email, customer_phone, total, notes , items , discounts, user_id,quote_id
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7,$8,$9,$10
-) RETURNING id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at
+) RETURNING id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at, payment_token, reminder_sent_at
 `
 
 type CreateInvoiceWithQuoteParams struct {
@@ -153,12 +157,14 @@ func (q *Queries) CreateInvoiceWithQuote(ctx context.Context, arg CreateInvoiceW
 		&i.Status,
 		&i.QuoteID,
 		&i.DeletedAt,
+		&i.PaymentToken,
+		&i.ReminderSentAt,
 	)
 	return i, err
 }
 
 const getCustomerInvoices = `-- name: GetCustomerInvoices :many
-SELECT id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at FROM invoices WHERE customer_email = $1
+SELECT id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at, payment_token, reminder_sent_at FROM invoices WHERE customer_email = $1
 AND deleted_at IS NULL
 ORDER BY created_at DESC 
 LIMIT $2
@@ -196,6 +202,8 @@ func (q *Queries) GetCustomerInvoices(ctx context.Context, arg GetCustomerInvoic
 			&i.Status,
 			&i.QuoteID,
 			&i.DeletedAt,
+			&i.PaymentToken,
+			&i.ReminderSentAt,
 		); err != nil {
 			return nil, err
 		}
@@ -211,7 +219,7 @@ func (q *Queries) GetCustomerInvoices(ctx context.Context, arg GetCustomerInvoic
 }
 
 const getInvoice = `-- name: GetInvoice :one
-SELECT id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at FROM invoices WHERE id = $1
+SELECT id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at, payment_token, reminder_sent_at FROM invoices WHERE id = $1
 `
 
 func (q *Queries) GetInvoice(ctx context.Context, id uuid.UUID) (Invoice, error) {
@@ -233,12 +241,14 @@ func (q *Queries) GetInvoice(ctx context.Context, id uuid.UUID) (Invoice, error)
 		&i.Status,
 		&i.QuoteID,
 		&i.DeletedAt,
+		&i.PaymentToken,
+		&i.ReminderSentAt,
 	)
 	return i, err
 }
 
 const getInvoiceByNumber = `-- name: GetInvoiceByNumber :one
-SELECT id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at FROM invoices WHERE invoice_number = $1
+SELECT id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at, payment_token, reminder_sent_at FROM invoices WHERE invoice_number = $1
 `
 
 func (q *Queries) GetInvoiceByNumber(ctx context.Context, invoiceNumber string) (Invoice, error) {
@@ -260,12 +270,14 @@ func (q *Queries) GetInvoiceByNumber(ctx context.Context, invoiceNumber string) 
 		&i.Status,
 		&i.QuoteID,
 		&i.DeletedAt,
+		&i.PaymentToken,
+		&i.ReminderSentAt,
 	)
 	return i, err
 }
 
 const getWorkersCreatedInvoices = `-- name: GetWorkersCreatedInvoices :many
-SELECT id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at FROM invoices WHERE user_id = $1
+SELECT id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at, payment_token, reminder_sent_at FROM invoices WHERE user_id = $1
 ORDER BY created_at DESC 
 LIMIT $2
 OFFSET $3
@@ -302,6 +314,8 @@ func (q *Queries) GetWorkersCreatedInvoices(ctx context.Context, arg GetWorkersC
 			&i.Status,
 			&i.QuoteID,
 			&i.DeletedAt,
+			&i.PaymentToken,
+			&i.ReminderSentAt,
 		); err != nil {
 			return nil, err
 		}
@@ -317,7 +331,7 @@ func (q *Queries) GetWorkersCreatedInvoices(ctx context.Context, arg GetWorkersC
 }
 
 const listInvoices = `-- name: ListInvoices :many
-SELECT id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at FROM invoices ORDER BY created_at DESC LIMIT $1 OFFSET $2
+SELECT id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at, payment_token, reminder_sent_at FROM invoices ORDER BY created_at DESC LIMIT $1 OFFSET $2
 `
 
 type ListInvoicesParams struct {
@@ -350,6 +364,8 @@ func (q *Queries) ListInvoices(ctx context.Context, arg ListInvoicesParams) ([]I
 			&i.Status,
 			&i.QuoteID,
 			&i.DeletedAt,
+			&i.PaymentToken,
+			&i.ReminderSentAt,
 		); err != nil {
 			return nil, err
 		}
@@ -401,7 +417,7 @@ UPDATE invoices SET
     items =$7,
     discounts=$8,
     updated_at = NOW()
-WHERE id = $1 RETURNING id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at
+WHERE id = $1 RETURNING id, invoice_number, customer_name, customer_email, customer_phone, total, notes, items, discounts, created_at, updated_at, user_id, status, quote_id, deleted_at, payment_token, reminder_sent_at
 `
 
 type UpdateInvoiceParams struct {
@@ -443,6 +459,19 @@ func (q *Queries) UpdateInvoice(ctx context.Context, arg UpdateInvoiceParams) (I
 		&i.Status,
 		&i.QuoteID,
 		&i.DeletedAt,
+		&i.PaymentToken,
+		&i.ReminderSentAt,
 	)
 	return i, err
+}
+
+const updateInvoiceReminderSentAt = `-- name: UpdateInvoiceReminderSentAt :exec
+UPDATE invoices
+SET reminder_sent_at = NOW(), updated_at = NOW()
+WHERE id = $1
+`
+
+func (q *Queries) UpdateInvoiceReminderSentAt(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, updateInvoiceReminderSentAt, id)
+	return err
 }

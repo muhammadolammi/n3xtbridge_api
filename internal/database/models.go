@@ -194,21 +194,23 @@ func (ns NullQuoteStatus) Value() (driver.Value, error) {
 }
 
 type Invoice struct {
-	ID            uuid.UUID
-	InvoiceNumber string
-	CustomerName  string
-	CustomerEmail string
-	CustomerPhone sql.NullString
-	Total         string
-	Notes         string
-	Items         json.RawMessage
-	Discounts     json.RawMessage
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	UserID        uuid.UUID
-	Status        string
-	QuoteID       uuid.NullUUID
-	DeletedAt     sql.NullTime
+	ID             uuid.UUID
+	InvoiceNumber  string
+	CustomerName   string
+	CustomerEmail  string
+	CustomerPhone  sql.NullString
+	Total          string
+	Notes          string
+	Items          json.RawMessage
+	Discounts      json.RawMessage
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	UserID         uuid.UUID
+	Status         string
+	QuoteID        uuid.NullUUID
+	DeletedAt      sql.NullTime
+	PaymentToken   string
+	ReminderSentAt sql.NullTime
 }
 
 type Payment struct {

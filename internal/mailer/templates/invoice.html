@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice from N3XTBRIDGE</title>
+    <style>
+        /* Basic mobile fixes */
+        @media only screen and (max-width: 620px) {
+            .wrapper {
+                width: 100% !important;
+                padding: 20px 10px !important;
+            }
+
+            .invoice-card {
+                width: 100% !important;
+            }
+
+            .mobile-stack {
+                display: block !important;
+                width: 100% !important;
+                text-align: left !important;
+            }
+
+            .mobile-padding {
+                padding: 20px !important;
+            }
+        }
+    </style>
+</head>
+
+<body
+    style="margin: 0; padding: 0; background-color: #f9fafb; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+            <td align="center" class="wrapper" style="padding: 40px 0;">
+
+                <!-- GREETING SECTION -->
+                <table border="0" cellpadding="0" cellspacing="0" width="600" class="invoice-card"
+                    style="margin-bottom: 20px;">
+                    <tr>
+                        <td align="left" style="padding: 0 10px;">
+                            <h2
+                                style="margin: 0 0 12px 0; font-size: 22px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">
+                                Hi {{.CustomerName}},
+                            </h2>
+                            <p style="margin: 0 0 10px 0; font-size: 15px; color: #4b5563; line-height: 1.6;">
+                                You have a new invoice from <b>N3XTBRIDGE HOLDINGS</b>.
+                            </p>
+                            <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 1.6;">
+                                Please review the details and settle the balance at your earliest convenience.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- MAIN INVOICE CARD (UNTOUCHED LOGIC) -->
+                <table border="0" cellpadding="0" cellspacing="0" width="600" class="invoice-card"
+                    style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; border-top: 8px solid #000000; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+
+                    <!-- Header -->
+                    <tr>
+                        <td class="mobile-padding" style="padding: 40px 40px 20px 40px;">
+                            <table width="100%">
+                                <tr>
+                                    <td class="mobile-stack">
+                                        <h1
+                                            style="margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -1px; text-transform: uppercase; color: #111827;">
+                                            N3XTBRIDGE</h1>
+                                        <p
+                                            style="margin: 5px 0 15px 0; font-size: 10px; color: #9ca3af; letter-spacing: 1px; text-transform: uppercase; font-weight: bold;">
+                                            Innovative Tech Solutions</p>
+                                    </td>
+                                    <td align="right" class="mobile-stack">
+                                        <h2
+                                            style="margin: 0; font-size: 32px; font-weight: 900; color: #000000; text-transform: uppercase; tracking: -2px;">
+                                            INVOICE</h2>
+                                        <p
+                                            style="margin: 0; font-size: 11px; font-family: monospace; color: #6b7280; font-weight: bold;">
+                                            REF: {{.InvoiceNumber}}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Payment Button -->
+                    <tr>
+                        <td class="mobile-padding" style="padding: 0 40px 30px 40px;">
+                            <a href="{{.PaymentLink}}"
+                                style="background-color: #000000; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 900; font-size: 12px; display: inline-block; text-transform: uppercase; letter-spacing: 2px;">
+                                Pay Invoice</a>
+                        </td>
+                    </tr>
+
+                    <!-- Billing Info -->
+                    <tr>
+                        <td class="mobile-padding"
+                            style="padding: 20px 40px; border-top: 1px solid #f3f4f6; border-bottom: 1px solid #f3f4f6;">
+                            <table width="100%">
+                                <tr>
+                                    <td width="60%" valign="top" class="mobile-stack" style="padding-bottom: 15px;">
+                                        <p
+                                            style="margin: 0 0 10px 0; font-size: 10px; font-weight: 900; color: #9ca3af; text-transform: uppercase; letter-spacing: 2px;">
+                                            Bill To:</p>
+                                        <p style="margin: 0; font-size: 18px; font-weight: bold; color: #111827;">
+                                            {{.CustomerName}}</p>
+                                        <p style="margin: 2px 0; font-size: 13px; color: #6b7280;">{{.CustomerEmail}}
+                                        </p>
+                                    </td>
+                                    <td align="right" valign="top" class="mobile-stack">
+                                        <p
+                                            style="margin: 0 0 5px 0; font-size: 10px; font-weight: 900; color: #9ca3af; text-transform: uppercase; letter-spacing: 2px;">
+                                            Date Issued:</p>
+                                        <p style="margin: 0; font-size: 14px; font-weight: bold; color: #111827;">
+                                            {{.Date}}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Items Table -->
+                    <tr>
+                        <td class="mobile-padding" style="padding: 30px 40px;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <thead>
+                                    <tr>
+                                        <th align="left"
+                                            style="padding-bottom: 15px; font-size: 10px; font-weight: 900; color: #9ca3af; text-transform: uppercase; border-bottom: 1px solid #f3f4f6; letter-spacing: 1px;">
+                                            Description</th>
+                                        <th align="center"
+                                            style="padding-bottom: 15px; font-size: 10px; font-weight: 900; color: #9ca3af; text-transform: uppercase; border-bottom: 1px solid #f3f4f6; width: 50px;">
+                                            Qty</th>
+                                        <th align="right"
+                                            style="padding-bottom: 15px; font-size: 10px; font-weight: 900; color: #9ca3af; text-transform: uppercase; border-bottom: 1px solid #f3f4f6; width: 100px;">
+                                            Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{range .Items}}
+                                    <tr>
+                                        <td style="padding: 20px 0; border-bottom: 1px solid #f9fafb;">
+                                            <p style="margin: 0; font-size: 14px; font-weight: bold; color: #111827;">
+                                                {{.Name}}</p>
+                                            <p style="margin: 2px 0 0 0; font-size: 11px; color: #9ca3af;">Unit:
+                                                ₦{{.Price}}</p>
+                                        </td>
+                                        <td align="center"
+                                            style="padding: 20px 0; font-size: 14px; color: #6b7280; border-bottom: 1px solid #f9fafb;">
+                                            {{.Quantity}}</td>
+                                        <td align="right"
+                                            style="padding: 20px 0; font-size: 14px; font-weight: bold; color: #111827; border-bottom: 1px solid #f9fafb;">
+                                            ₦{{.Price}}</td>
+                                    </tr>
+                                    {{end}}
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Totals and Discounts -->
+                    <tr>
+                        <td class="mobile-padding" style="padding: 0 40px 40px 40px;">
+                            <table width="100%">
+                                <tr>
+                                    <!-- Notes section -->
+                                    <td width="45%" valign="top" class="mobile-stack"
+                                        style="padding-right: 20px; padding-bottom: 20px;">
+                                        <p
+                                            style="font-size: 10px; font-weight: 900; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
+                                            Notes</p>
+                                        <p
+                                            style="font-size: 12px; color: #6b7280; line-height: 1.6; font-style: italic; border-left: 2px solid #f3f4f6; padding-left: 10px;">
+                                            {{.Notes}}</p>
+                                    </td>
+                                    <!-- Money section -->
+                                    <td width="55%" valign="top" class="mobile-stack">
+                                        <table width="100%">
+                                            {{if .Discounts}}
+                                            <tr>
+                                                <td colspan="2"
+                                                    style="font-size: 10px; font-weight: 900; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 8px;">
+                                                    Incentives Applied</td>
+                                            </tr>
+                                            {{range .Discounts}}
+                                            <tr>
+                                                <td
+                                                    style="font-size: 11px; color: #ef4444; font-weight: bold; padding-bottom: 5px; text-transform: uppercase;">
+                                                    {{.Name}}</td>
+                                                <td align="right"
+                                                    style="font-size: 11px; color: #ef4444; font-weight: bold; padding-bottom: 5px;">
+                                                    -₦{{.Amount}}</td>
+                                            </tr>
+                                            {{end}}
+                                            {{end}}
+                                            <tr>
+                                                <td
+                                                    style="padding-top: 15px; font-size: 12px; font-weight: 900; color: #111827; border-top: 2px solid #000000; text-transform: uppercase;">
+                                                    Total Due</td>
+                                                <td align="right"
+                                                    style="padding-top: 15px; font-size: 24px; font-weight: 900; color: #000000; border-top: 2px solid #000000; letter-spacing: -1px;">
+                                                    ₦{{.Total}}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td align="center"
+                            style="padding: 30px; background-color: #f9fafb; border-top: 1px solid #e5e7eb;">
+                            <p
+                                style="margin: 0; font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 3px; font-weight: bold;">
+                                Secured Access</p>
+                        </td>
+                    </tr>
+                </table>
+                <p style="font-size: 11px; color: #9ca3af; margin-top: 20px; text-align: center;">11, Paul Amune Flat 2,
+                    Phase 1, Gwagwalada, Abuja, Nigeria</p>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>
