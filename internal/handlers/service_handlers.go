@@ -29,8 +29,8 @@ func (cfg *Config) CreateServiceHandler(w http.ResponseWriter, r *http.Request) 
 		helpers.RespondWithError(w, http.StatusBadRequest, "invalid request, err: "+err.Error())
 		return
 	}
-	if input.Name == "" || input.Category == "" || input.Description == "" || input.Image == "" || input.MinPrice == "" {
-		helpers.RespondWithError(w, http.StatusBadRequest, "invalid request, name, category, description, min_price and image can't be empty ")
+	if input.Name == "" || input.Category == "" || input.Description == "" || input.Image == "" {
+		helpers.RespondWithError(w, http.StatusBadRequest, "invalid request, name, category, description and image can't be empty ")
 		return
 	}
 
