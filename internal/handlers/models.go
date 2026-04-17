@@ -47,11 +47,11 @@ type Service struct {
 	Category    string    `json:"category"`
 	IsActive    bool      `json:"is_active"`
 	IsFeatured  bool      `json:"is_featured"`
-	Icon        string    `json:"icon"`
 	Image       string    `json:"image"`
 	Tags        []string  `json:"tags"`
 	PromoIDs    []string  `json:"promo_ids"`
 	CreatedAt   time.Time `json:"created_at"`
+	MinPrice    string    `json:"min_price"`
 }
 
 type QuoteRequestStatus string
@@ -146,7 +146,6 @@ type GetUserQuotesWithServiceRow struct {
 	CreatedAt   time.Time   `json:"created_at"`
 	UpdatedAt   time.Time   `json:"updated_at"`
 	ExpiresAt   time.Time   `json:"expires_at"`
-	ServiceIcon string      `json:"service_icon"`
 	ServiceName string      `json:"service_name"`
 	ServiceID   uuid.UUID   `json:"service_id"`
 }

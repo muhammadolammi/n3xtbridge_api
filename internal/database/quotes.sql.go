@@ -141,8 +141,7 @@ func (q *Queries) GetQuote(ctx context.Context, id uuid.UUID) (Quote, error) {
 
 const getQuotes = `-- name: GetQuotes :many
 SELECT    q.id, q.quote_request_id, q.amount, q.breakdown, q.notes, q.status, q.expires_at, q.created_at, q.updated_at, q.discounts, q.user_id, q.promo_ids, 
-    s.name as service_name,
-    s.icon as service_icon
+    s.name as service_name
 FROM quotes q 
 JOIN quote_requests qr ON q.quote_request_id = qr.id
 JOIN services s ON qr.service_id = s.id
@@ -168,7 +167,6 @@ type GetQuotesRow struct {
 	UserID         uuid.UUID
 	PromoIds       []string
 	ServiceName    string
-	ServiceIcon    string
 }
 
 func (q *Queries) GetQuotes(ctx context.Context, arg GetQuotesParams) ([]GetQuotesRow, error) {
@@ -194,7 +192,6 @@ func (q *Queries) GetQuotes(ctx context.Context, arg GetQuotesParams) ([]GetQuot
 			&i.UserID,
 			pq.Array(&i.PromoIds),
 			&i.ServiceName,
-			&i.ServiceIcon,
 		); err != nil {
 			return nil, err
 		}
@@ -213,7 +210,7 @@ const getUserQuoteWithService = `-- name: GetUserQuoteWithService :one
 SELECT 
     q.id, q.quote_request_id, q.amount, q.breakdown, q.notes, q.status, q.expires_at, q.created_at, q.updated_at, q.discounts, q.user_id, q.promo_ids, 
     s.name as service_name,
-    s.icon as service_icon,
+   
     s.id as service_id
 FROM quotes q 
 JOIN quote_requests qr ON q.quote_request_id = qr.id
@@ -240,7 +237,6 @@ type GetUserQuoteWithServiceRow struct {
 	UserID         uuid.UUID
 	PromoIds       []string
 	ServiceName    string
-	ServiceIcon    string
 	ServiceID      uuid.UUID
 }
 
@@ -261,7 +257,6 @@ func (q *Queries) GetUserQuoteWithService(ctx context.Context, arg GetUserQuoteW
 		&i.UserID,
 		pq.Array(&i.PromoIds),
 		&i.ServiceName,
-		&i.ServiceIcon,
 		&i.ServiceID,
 	)
 	return i, err
@@ -271,7 +266,7 @@ const getUserQuotesWithService = `-- name: GetUserQuotesWithService :many
 SELECT 
     q.id, q.quote_request_id, q.amount, q.breakdown, q.notes, q.status, q.expires_at, q.created_at, q.updated_at, q.discounts, q.user_id, q.promo_ids, 
     s.name as service_name,
-    s.icon as service_icon,
+   
         s.id as service_id
 
 FROM quotes q 
@@ -302,7 +297,6 @@ type GetUserQuotesWithServiceRow struct {
 	UserID         uuid.UUID
 	PromoIds       []string
 	ServiceName    string
-	ServiceIcon    string
 	ServiceID      uuid.UUID
 }
 
@@ -329,7 +323,6 @@ func (q *Queries) GetUserQuotesWithService(ctx context.Context, arg GetUserQuote
 			&i.UserID,
 			pq.Array(&i.PromoIds),
 			&i.ServiceName,
-			&i.ServiceIcon,
 			&i.ServiceID,
 		); err != nil {
 			return nil, err

@@ -285,11 +285,11 @@ type Service struct {
 	Category       string
 	IsActive       bool
 	IsFeatured     bool
-	Icon           string
 	Image          string
 	Tags           []string
 	CreatedAt      time.Time
 	ActivePromoIds []string
+	MinPrice       string
 }
 
 type User struct {

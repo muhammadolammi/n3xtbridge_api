@@ -20,17 +20,17 @@ func (cfg *Config) CreateServiceHandler(w http.ResponseWriter, r *http.Request) 
 		Description string   `json:"description"`
 		Category    string   `json:"category"`
 		IsFeatured  bool     `json:"is_featured"`
-		Icon        string   `json:"icon"`
 		Tags        []string `json:"tags"`
 		Image       string   `json:"image"`
+		MinPrice    string   `json:"min_price"`
 	}{}
 	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
 		helpers.RespondWithError(w, http.StatusBadRequest, "invalid request, err: "+err.Error())
 		return
 	}
-	if input.Name == "" || input.Category == "" || input.Description == "" || input.Icon == "" || input.Image == "" {
-		helpers.RespondWithError(w, http.StatusBadRequest, "invalid request, name, category, description, icon and image can't be empty ")
+	if input.Name == "" || input.Category == "" || input.Description == "" || input.Image == "" || input.MinPrice == "" {
+		helpers.RespondWithError(w, http.StatusBadRequest, "invalid request, name, category, description, min_price and image can't be empty ")
 		return
 	}
 
@@ -39,9 +39,9 @@ func (cfg *Config) CreateServiceHandler(w http.ResponseWriter, r *http.Request) 
 		Description: input.Description,
 		Category:    input.Category,
 		IsFeatured:  input.IsFeatured,
-		Icon:        input.Icon,
 		Tags:        pq.StringArray(input.Tags),
 		Image:       input.Image,
+		MinPrice:    input.MinPrice,
 	})
 	if err != nil {
 		log.Println("DB ERROR: " + err.Error())

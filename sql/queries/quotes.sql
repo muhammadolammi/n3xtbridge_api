@@ -7,7 +7,7 @@ RETURNING *;
 SELECT 
     q.*, 
     s.name as service_name,
-    s.icon as service_icon,
+   
         s.id as service_id
 
 FROM quotes q 
@@ -21,7 +21,7 @@ LIMIT $2 OFFSET $3;
 SELECT 
     q.*, 
     s.name as service_name,
-    s.icon as service_icon,
+   
     s.id as service_id
 FROM quotes q 
 JOIN quote_requests qr ON q.quote_request_id = qr.id
@@ -30,8 +30,7 @@ WHERE qr.user_id = $1 AND q.id= $2;
 
 -- name: GetQuotes :many
 SELECT    q.*, 
-    s.name as service_name,
-    s.icon as service_icon
+    s.name as service_name
 FROM quotes q 
 JOIN quote_requests qr ON q.quote_request_id = qr.id
 JOIN services s ON qr.service_id = s.id

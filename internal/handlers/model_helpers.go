@@ -122,11 +122,11 @@ func dbServiceToService(dbService database.Service) Service {
 		Category:    dbService.Category,
 		IsActive:    dbService.IsActive,
 		IsFeatured:  dbService.IsFeatured,
-		Icon:        dbService.Icon,
 		Image:       dbService.Image,
 		Tags:        dbService.Tags,
 		PromoIDs:    dbService.ActivePromoIds,
 		CreatedAt:   dbService.CreatedAt,
+		MinPrice:    dbService.MinPrice,
 	}
 
 }
@@ -287,7 +287,6 @@ func DbUserQuotesWithServiceRowToUserQuotesWithServiceRow(dbQuote database.GetUs
 		ExpiresAt:   dbQuote.ExpiresAt,
 		CreatedAt:   dbQuote.CreatedAt,
 		UpdatedAt:   dbQuote.UpdatedAt,
-		ServiceIcon: dbQuote.ServiceIcon,
 		ServiceName: dbQuote.ServiceName,
 		ServiceID:   dbQuote.ServiceID,
 	}
