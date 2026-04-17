@@ -36,10 +36,10 @@ func (q *Queries) CountServices(ctx context.Context) (int64, error) {
 
 const createService = `-- name: CreateService :one
 INSERT INTO services (
-    name, description, category, is_featured, icon , tags , image
+    name, description, category, is_featured , tags , image, min_price
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7
-) RETURNING id, name, description, category, is_active, is_featured, icon, image, tags, created_at, active_promo_ids
+) RETURNING id, name, description, category, is_active, is_featured, image, tags, created_at, active_promo_ids, min_price
 `
 
 type CreateServiceParams struct {
@@ -47,9 +47,9 @@ type CreateServiceParams struct {
 	Description string
 	Category    string
 	IsFeatured  bool
-	Icon        string
 	Tags        []string
 	Image       string
+	MinPrice    string
 }
 
 func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (Service, error) {
@@ -58,9 +58,9 @@ func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (S
 		arg.Description,
 		arg.Category,
 		arg.IsFeatured,
-		arg.Icon,
 		pq.Array(arg.Tags),
 		arg.Image,
+		arg.MinPrice,
 	)
 	var i Service
 	err := row.Scan(
@@ -70,17 +70,17 @@ func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (S
 		&i.Category,
 		&i.IsActive,
 		&i.IsFeatured,
-		&i.Icon,
 		&i.Image,
 		pq.Array(&i.Tags),
 		&i.CreatedAt,
 		pq.Array(&i.ActivePromoIds),
+		&i.MinPrice,
 	)
 	return i, err
 }
 
 const getActiveServices = `-- name: GetActiveServices :many
-SELECT id, name, description, category, is_active, is_featured, icon, image, tags, created_at, active_promo_ids FROM services 
+SELECT id, name, description, category, is_active, is_featured, image, tags, created_at, active_promo_ids, min_price FROM services 
 WHERE is_active = true
 ORDER BY 
     is_featured DESC, 
@@ -110,11 +110,11 @@ func (q *Queries) GetActiveServices(ctx context.Context, arg GetActiveServicesPa
 			&i.Category,
 			&i.IsActive,
 			&i.IsFeatured,
-			&i.Icon,
 			&i.Image,
 			pq.Array(&i.Tags),
 			&i.CreatedAt,
 			pq.Array(&i.ActivePromoIds),
+			&i.MinPrice,
 		); err != nil {
 			return nil, err
 		}
@@ -130,7 +130,7 @@ func (q *Queries) GetActiveServices(ctx context.Context, arg GetActiveServicesPa
 }
 
 const getService = `-- name: GetService :one
-SELECT id, name, description, category, is_active, is_featured, icon, image, tags, created_at, active_promo_ids FROM services WHERE id = $1
+SELECT id, name, description, category, is_active, is_featured, image, tags, created_at, active_promo_ids, min_price FROM services WHERE id = $1
 `
 
 func (q *Queries) GetService(ctx context.Context, id uuid.UUID) (Service, error) {
@@ -143,17 +143,17 @@ func (q *Queries) GetService(ctx context.Context, id uuid.UUID) (Service, error)
 		&i.Category,
 		&i.IsActive,
 		&i.IsFeatured,
-		&i.Icon,
 		&i.Image,
 		pq.Array(&i.Tags),
 		&i.CreatedAt,
 		pq.Array(&i.ActivePromoIds),
+		&i.MinPrice,
 	)
 	return i, err
 }
 
 const getServiceByName = `-- name: GetServiceByName :one
-SELECT id, name, description, category, is_active, is_featured, icon, image, tags, created_at, active_promo_ids FROM services WHERE name = $1
+SELECT id, name, description, category, is_active, is_featured, image, tags, created_at, active_promo_ids, min_price FROM services WHERE name = $1
 `
 
 func (q *Queries) GetServiceByName(ctx context.Context, name string) (Service, error) {
@@ -166,17 +166,17 @@ func (q *Queries) GetServiceByName(ctx context.Context, name string) (Service, e
 		&i.Category,
 		&i.IsActive,
 		&i.IsFeatured,
-		&i.Icon,
 		&i.Image,
 		pq.Array(&i.Tags),
 		&i.CreatedAt,
 		pq.Array(&i.ActivePromoIds),
+		&i.MinPrice,
 	)
 	return i, err
 }
 
 const getServices = `-- name: GetServices :many
-SELECT id, name, description, category, is_active, is_featured, icon, image, tags, created_at, active_promo_ids FROM services 
+SELECT id, name, description, category, is_active, is_featured, image, tags, created_at, active_promo_ids, min_price FROM services 
 ORDER BY 
     is_featured DESC, 
     created_at DESC
@@ -205,11 +205,11 @@ func (q *Queries) GetServices(ctx context.Context, arg GetServicesParams) ([]Ser
 			&i.Category,
 			&i.IsActive,
 			&i.IsFeatured,
-			&i.Icon,
 			&i.Image,
 			pq.Array(&i.Tags),
 			&i.CreatedAt,
 			pq.Array(&i.ActivePromoIds),
+			&i.MinPrice,
 		); err != nil {
 			return nil, err
 		}

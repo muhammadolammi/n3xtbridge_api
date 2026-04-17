@@ -1,6 +1,6 @@
 -- name: CreateService :one
 INSERT INTO services (
-    name, description, category, is_featured, icon , tags , image
+    name, description, category, is_featured , tags , image, min_price
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7
 ) RETURNING *;

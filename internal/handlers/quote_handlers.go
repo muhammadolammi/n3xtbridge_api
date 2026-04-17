@@ -368,7 +368,6 @@ func (cfg *Config) AdminGetQuotesHandler(w http.ResponseWriter, r *http.Request)
 				CreatedAt:      q.CreatedAt,
 				UpdatedAt:      q.UpdatedAt,
 			}),
-			ServiceIcon: q.ServiceIcon,
 			ServiceName: q.ServiceName,
 		})
 	}
@@ -529,7 +528,6 @@ func (cfg *Config) GetUserQuoteWithServiceHandler(w http.ResponseWriter, r *http
 			CreatedAt:      q.CreatedAt,
 			UpdatedAt:      q.UpdatedAt,
 			ExpiresAt:      q.ExpiresAt,
-			ServiceIcon:    q.ServiceIcon,
 			ServiceName:    q.ServiceName,
 			ServiceID:      q.ServiceID,
 		}),
