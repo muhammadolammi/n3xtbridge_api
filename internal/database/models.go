@@ -266,6 +266,7 @@ type QuoteRequest struct {
 	UpdatedAt   time.Time
 	Budget      sql.NullString
 	PromoIds    []string
+	VnR2Key     string
 }
 
 type RefreshToken struct {

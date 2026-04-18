@@ -24,7 +24,7 @@ func main() {
 
 	// // Connect services in goroutines
 	// go infra.ConnectRabbit(ctx, &cfg)
-	// go infra.LoadAWSConfig(&cfg, cfg.R2)
+	go loadAWSConfig(&cfg, cfg.R2)
 	// go infra.ConnectPubSub(ctx, &cfg)
 
 	infra.ConnectDB(ctx, &cfg)

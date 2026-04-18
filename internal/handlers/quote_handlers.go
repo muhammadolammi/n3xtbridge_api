@@ -22,6 +22,7 @@ func (cfg *Config) CreateQuoteRequestHandler(w http.ResponseWriter, r *http.Requ
 		ServiceName string    `json:"service_name"`
 		Description string    `json:"description"`
 		Attachments []string  `json:"attachments"`
+		VNR2Key     string    `json:"vn_key"`
 		PromoIDS    []string  `json:"promo_ids"`
 	}{}
 	err := json.NewDecoder(r.Body).Decode(&input)
@@ -45,7 +46,6 @@ func (cfg *Config) CreateQuoteRequestHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	log.Println(input.PromoIDS)
 	quoteRequest, err := cfg.DBQueries.CreateQuoteRequest(r.Context(), database.CreateQuoteRequestParams{
 		UserID:      input.UserID,
 		ServiceName: input.ServiceName,
@@ -53,6 +53,7 @@ func (cfg *Config) CreateQuoteRequestHandler(w http.ResponseWriter, r *http.Requ
 		Description: input.Description,
 		Attachments: input.Attachments,
 		PromoIds:    input.PromoIDS,
+		VnR2Key:     input.VNR2Key,
 	})
 
 	if err != nil {
