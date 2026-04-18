@@ -96,3 +96,40 @@ func (cfg *Config) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	helpers.RespondWithJson(w, http.StatusOK, dbUserToUser(user))
 }
+
+func (cfg *Config) CheckLeadHandler(w http.ResponseWriter, r *http.Request) {
+	input := struct {
+		Email string `json:"email"`
+	}{}
+	err := json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		helpers.RespondWithError(w, http.StatusBadRequest, "invalid request, err: "+err.Error())
+		return
+	}
+
+	// Check if user already exists
+	existingUser, err := cfg.DBQueries.GetUserByEmail(context.Background(), input.Email)
+	res := struct {
+		Exist bool `json:"exists"`
+	}{}
+	if existingUser.ID != uuid.Nil {
+		// existing user
+		res.Exist = true
+		helpers.RespondWithJson(w, http.StatusOK, res)
+		return
+	}
+	// check for other error
+
+	if err != nil {
+		if strings.Contains(err.Error(), "sql: no rows in result set") {
+			res.Exist = false
+			helpers.RespondWithJson(w, http.StatusOK, res)
+		}
+		helpers.RespondWithError(w, http.StatusInternalServerError, "Error checking lead")
+		return
+	}
+	// just to be sure the default is already false
+	res.Exist = false
+
+	helpers.RespondWithJson(w, http.StatusOK, res)
+}

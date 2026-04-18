@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/google/uuid"
 	"github.com/muhammadolammi/goauth"
 	"github.com/muhammadolammi/n3xtbridge_api/internal/database"
@@ -22,9 +23,24 @@ type Config struct {
 	Paystack       *payment.PaystackService
 	PaystackSecret string
 	IsProd         bool
+	AwsConfig      *aws.Config
+
 	// Email configuration (Zoho SMTP)
 	EmailSender *mailer.Mailer
 	AuthService *goauth.AuthService
+	// R2 CONFIG
+	R2 *R2Config
+}
+type R2Config struct {
+	AccountID string
+	Bucket    string
+	AccessKey string
+	SecretKey string
+}
+type PresignResponse struct {
+	UploadURL  string `json:"upload_url"`
+	ObjectKey  string `json:"object_key"`
+	Expiration int64  `json:"expiration"`
 }
 
 type User struct {
@@ -98,6 +114,7 @@ type QuoteRequest struct {
 	Status      QuoteRequestStatus `json:"status"`
 	CreatedAt   time.Time          `json:"created_at"`
 	UpdatedAt   time.Time          `json:"updated_at"`
+	VnR2Key     string             `json:"vn_key"`
 }
 
 type GetQuoteRequestsRow struct {
@@ -114,6 +131,7 @@ type GetQuoteRequestsRow struct {
 	UserEmail   string             `json:"user_email"`
 	UserName    string             `json:"user_name"`
 	ServiceName string             `json:"service_name"`
+	VnR2Key     string             `json:"vn_key"`
 }
 
 type GetUserQuoteRequestsRow struct {
@@ -130,6 +148,7 @@ type GetUserQuoteRequestsRow struct {
 	UpdatedAt   time.Time          `json:"updated_at"`
 
 	ServiceName string `json:"service_name"`
+	VnR2Key     string `json:"vn_key"`
 }
 
 type GetUserQuotesWithServiceRow struct {

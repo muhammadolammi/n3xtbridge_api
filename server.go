@@ -63,12 +63,14 @@ func server(apiConfig *handlers.Config) {
 	protectedRoute.Get("/p/invoices/{id}", apiConfig.PublicGetInvoiceHandler)
 	protectedRoute.Post("/payments/{id}", apiConfig.InitializePaymentHandler)
 	protectedRoute.Get("/payments/verify/{ref}", apiConfig.VerifyPaymentStatusHandler)
+	protectedRoute.Post("/auth/check-lead", apiConfig.CheckLeadHandler)
 
 	// Authenticated Auth routes
 	protectedRoute.Group(func(r chi.Router) {
 		r.Use(apiConfig.AuthService.RequireAuth)
 		r.Post("/auth/signout", apiConfig.AuthService.LogoutHandler)
 		r.Get("/auth/user", apiConfig.GetUserHandler)
+
 		// customer routes
 		r.Post("/customer/quotes/requests", apiConfig.CreateQuoteRequestHandler)
 		r.Get("/customer/quotes/my-requests", apiConfig.GetUserQuoteRequestsHandler)
@@ -81,8 +83,9 @@ func server(apiConfig *handlers.Config) {
 		r.Get("/quotes/invoices/{id}", apiConfig.GetQuoteInvoiceHandler)
 
 		r.Patch("/customer/quotes/requests/{id}/description", apiConfig.UpdateUserQuoteRequestDescriptionHandler)
-		// general routes
 		r.Patch("/customer/quotes/{id}/status", apiConfig.CustomerUpdateQuoteStatusHandler)
+
+		r.Post("/storage/presign", apiConfig.PresignUploadHandler)
 
 	})
 

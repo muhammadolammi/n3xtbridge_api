@@ -218,6 +218,7 @@ func DbQuoteRequestRowToQuoteRequestRow(dbRow database.GetQuoteRequestsRow) GetQ
 		UserEmail:   dbRow.UserEmail,
 		UserName:    dbRow.UserName,
 		ServiceName: dbRow.ServiceName,
+		VnR2Key:     dbRow.VnR2Key,
 	}
 }
 
@@ -242,6 +243,7 @@ func DbUserQuoteRequestRowToUserQuoteRequestRow(dbRow database.GetUserQuoteReque
 		Status:    QuoteRequestStatus(dbRow.Status),
 		CreatedAt: dbRow.CreatedAt,
 		UpdatedAt: dbRow.UpdatedAt,
+		VnR2Key:   dbRow.VnR2Key,
 
 		ServiceName: dbRow.ServiceName,
 	}
