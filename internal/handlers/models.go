@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 	"github.com/muhammadolammi/goauth"
 	"github.com/muhammadolammi/n3xtbridge_api/internal/database"
@@ -24,6 +25,7 @@ type Config struct {
 	PaystackSecret string
 	IsProd         bool
 	AwsConfig      *aws.Config
+	PresignClient  *s3.PresignClient
 
 	// Email configuration (Zoho SMTP)
 	EmailSender *mailer.Mailer
@@ -32,8 +34,10 @@ type Config struct {
 	R2 *R2Config
 }
 type R2Config struct {
-	AccountID string
-	Bucket    string
+	AccountID     string
+	PublicBucket  string
+	PrivateBucket string
+
 	AccessKey string
 	SecretKey string
 }
@@ -115,6 +119,7 @@ type QuoteRequest struct {
 	CreatedAt   time.Time          `json:"created_at"`
 	UpdatedAt   time.Time          `json:"updated_at"`
 	VnR2Key     string             `json:"vn_key"`
+	VideoKey    string             `json:"video_key"`
 }
 
 type GetQuoteRequestsRow struct {
@@ -132,6 +137,7 @@ type GetQuoteRequestsRow struct {
 	UserName    string             `json:"user_name"`
 	ServiceName string             `json:"service_name"`
 	VnR2Key     string             `json:"vn_key"`
+	VideoKey    string             `json:"video_key"`
 }
 
 type GetUserQuoteRequestsRow struct {
@@ -149,6 +155,7 @@ type GetUserQuoteRequestsRow struct {
 
 	ServiceName string `json:"service_name"`
 	VnR2Key     string `json:"vn_key"`
+	VideoKey    string `json:"video_key"`
 }
 
 type GetUserQuotesWithServiceRow struct {
@@ -216,4 +223,6 @@ type Promotion struct {
 	StartsAt    time.Time         `json:"starts_at"`
 	ExpiresAt   time.Time         `json:"expires_at"`
 	CreatedAt   time.Time         `json:"created_at"`
+	ServiceID   string            `json:"service_id"`
+	Attachments []string          `json:"attachments"`
 }

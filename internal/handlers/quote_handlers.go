@@ -23,7 +23,9 @@ func (cfg *Config) CreateQuoteRequestHandler(w http.ResponseWriter, r *http.Requ
 		Description string    `json:"description"`
 		Attachments []string  `json:"attachments"`
 		VNR2Key     string    `json:"vn_key"`
-		PromoIDS    []string  `json:"promo_ids"`
+		VideoKey    string    `json:"video_key"`
+
+		PromoIDS []string `json:"promo_ids"`
 	}{}
 	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
@@ -54,6 +56,7 @@ func (cfg *Config) CreateQuoteRequestHandler(w http.ResponseWriter, r *http.Requ
 		Attachments: input.Attachments,
 		PromoIds:    input.PromoIDS,
 		VnR2Key:     input.VNR2Key,
+		VideoKey:    input.VideoKey,
 	})
 
 	if err != nil {
@@ -155,6 +158,7 @@ func (cfg *Config) AdminGetQuoteRequestsHandler(w http.ResponseWriter, r *http.R
 		QuoteRequests: DbQuoteRequestRowsToQuoteRequestsRow(qrs),
 		Total:         count,
 	}
+	log.Println(res)
 
 	helpers.RespondWithJson(w, http.StatusOK, res)
 

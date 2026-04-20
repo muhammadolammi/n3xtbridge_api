@@ -32,7 +32,7 @@ func (cfg *Config) VerifyPromoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	helpers.RespondWithJson(w, http.StatusOK, map[string]interface{}{
+	helpers.RespondWithJson(w, http.StatusOK, map[string]any{
 		"promotion": dbPromoToPromo(dbPromo),
 	})
 }
@@ -43,10 +43,10 @@ type CreatePromoInput struct {
 	Description string       `json:"description"`
 	Breakdown   []DBDiscount `json:"breakdown"`
 	ServiceID   uuid.UUID    `json:"service_id"`
-
-	IsActive  bool      `json:"is_active"`
-	StartsAt  time.Time `json:"starts_at"`
-	ExpiresAt time.Time `json:"expires_at"`
+	IsActive    bool         `json:"is_active"`
+	StartsAt    time.Time    `json:"starts_at"`
+	ExpiresAt   time.Time    `json:"expires_at"`
+	Attachments []string     `json:"attachments"`
 }
 
 func (cfg *Config) AdminCreatePromotionHandler(w http.ResponseWriter, r *http.Request) {
@@ -78,21 +78,19 @@ func (cfg *Config) AdminCreatePromotionHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	promo, err := helpers.CreatePromotionAndLinkWithService(r.Context(), helpers.CreatePromotionAndLinkWithServiceParam{
-		CreatePromotionParam: database.CreatePromotionParams{
-			Code:        strings.ToUpper(input.Code),
-			Name:        input.Name,
-			Description: sql.NullString{String: input.Description, Valid: input.Description != ""},
+	promo, err := cfg.DBQueries.CreatePromotion(r.Context(), database.CreatePromotionParams{
+		Code:        strings.ToUpper(input.Code),
+		Name:        input.Name,
+		Description: sql.NullString{String: input.Description, Valid: input.Description != ""},
 
-			Breakdown: jsonBreakdown,
-			IsActive:  sql.NullBool{Bool: input.IsActive, Valid: true},
-			StartsAt:  sql.NullTime{Time: input.StartsAt, Valid: !input.StartsAt.IsZero()},
-			ExpiresAt: sql.NullTime{Time: input.ExpiresAt, Valid: !input.ExpiresAt.IsZero()},
-		},
-		Service: service,
-		Db:      cfg.DBConn,
-		Queries: cfg.DBQueries,
-	})
+		Breakdown:   jsonBreakdown,
+		ServiceID:   uuid.NullUUID{Valid: true, UUID: service.ID},
+		IsActive:    sql.NullBool{Bool: input.IsActive, Valid: true},
+		StartsAt:    sql.NullTime{Time: input.StartsAt, Valid: !input.StartsAt.IsZero()},
+		ExpiresAt:   sql.NullTime{Time: input.ExpiresAt, Valid: !input.ExpiresAt.IsZero()},
+		Attachments: input.Attachments,
+	},
+	)
 
 	if err != nil {
 		helpers.RespondWithError(w, http.StatusInternalServerError, "Failed to register promotion: "+err.Error())
@@ -113,7 +111,6 @@ func (cfg *Config) AdminListPromotionsHandler(w http.ResponseWriter, r *http.Req
 	if err != nil || offset < 0 {
 		offset = 0 // Default
 	}
-	log.Println("got it ")
 	promos, err := cfg.DBQueries.ListPromos(r.Context(), database.ListPromosParams{
 		Offset: int32(offset),
 		Limit:  int32(limit),

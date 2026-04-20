@@ -124,7 +124,6 @@ func dbServiceToService(dbService database.Service) Service {
 		IsFeatured:  dbService.IsFeatured,
 		Image:       dbService.Image,
 		Tags:        dbService.Tags,
-		PromoIDs:    dbService.ActivePromoIds,
 		CreatedAt:   dbService.CreatedAt,
 		MinPrice:    dbService.MinPrice,
 	}
@@ -150,6 +149,8 @@ func DbQuoteRequestToQuoteRequest(dbReq database.QuoteRequest) QuoteRequest {
 		Status:      QuoteRequestStatus(dbReq.Status),
 		CreatedAt:   dbReq.CreatedAt,
 		UpdatedAt:   dbReq.UpdatedAt,
+		VnR2Key:     dbReq.VnR2Key,
+		VideoKey:    dbReq.VideoKey,
 	}
 }
 
@@ -219,6 +220,7 @@ func DbQuoteRequestRowToQuoteRequestRow(dbRow database.GetQuoteRequestsRow) GetQ
 		UserName:    dbRow.UserName,
 		ServiceName: dbRow.ServiceName,
 		VnR2Key:     dbRow.VnR2Key,
+		VideoKey:    dbRow.VideoKey,
 	}
 }
 
@@ -244,6 +246,7 @@ func DbUserQuoteRequestRowToUserQuoteRequestRow(dbRow database.GetUserQuoteReque
 		CreatedAt: dbRow.CreatedAt,
 		UpdatedAt: dbRow.UpdatedAt,
 		VnR2Key:   dbRow.VnR2Key,
+		VideoKey:  dbRow.VideoKey,
 
 		ServiceName: dbRow.ServiceName,
 	}
@@ -335,7 +338,7 @@ func dbPromoToPromo(dbPromo database.Promotion) Promotion {
 	dbBreakdowns := []DBDiscount{}
 	err := json.Unmarshal(dbPromo.Breakdown, &dbBreakdowns)
 	if err != nil {
-		log.Printf("Error unmarshaling breakdown for Promo %s: %v", dbPromo.ID, err)
+		log.Printf("Error unmarshaling breakdown for Promo %s: v", dbPromo.ID, err)
 	}
 	discounts := DbDiscountsToDiscounts(dbBreakdowns)
 
@@ -348,7 +351,9 @@ func dbPromoToPromo(dbPromo database.Promotion) Promotion {
 		IsActive:    dbPromo.IsActive.Bool,
 		StartsAt:    dbPromo.StartsAt.Time,
 		ExpiresAt:   dbPromo.ExpiresAt.Time,
+		ServiceID:   dbPromo.ServiceID.UUID.String(),
 		CreatedAt:   dbPromo.CreatedAt.Time,
+		Attachments: dbPromo.Attachments,
 	}
 }
 

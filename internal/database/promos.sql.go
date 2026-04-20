@@ -44,11 +44,11 @@ INSERT INTO promotions (
     breakdown,
     is_active,
     starts_at,
-    expires_at
+    expires_at, service_id, attachments
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 )
-RETURNING id, code, name, description, breakdown, is_active, starts_at, expires_at, created_at
+RETURNING id, code, name, description, breakdown, is_active, starts_at, expires_at, created_at, service_id, attachments
 `
 
 type CreatePromotionParams struct {
@@ -59,6 +59,8 @@ type CreatePromotionParams struct {
 	IsActive    sql.NullBool
 	StartsAt    sql.NullTime
 	ExpiresAt   sql.NullTime
+	ServiceID   uuid.NullUUID
+	Attachments []string
 }
 
 func (q *Queries) CreatePromotion(ctx context.Context, arg CreatePromotionParams) (Promotion, error) {
@@ -70,6 +72,8 @@ func (q *Queries) CreatePromotion(ctx context.Context, arg CreatePromotionParams
 		arg.IsActive,
 		arg.StartsAt,
 		arg.ExpiresAt,
+		arg.ServiceID,
+		pq.Array(arg.Attachments),
 	)
 	var i Promotion
 	err := row.Scan(
@@ -82,12 +86,14 @@ func (q *Queries) CreatePromotion(ctx context.Context, arg CreatePromotionParams
 		&i.StartsAt,
 		&i.ExpiresAt,
 		&i.CreatedAt,
+		&i.ServiceID,
+		pq.Array(&i.Attachments),
 	)
 	return i, err
 }
 
 const getActivePromoByCode = `-- name: GetActivePromoByCode :one
-SELECT id, code, name, description, breakdown, is_active, starts_at, expires_at, created_at FROM promotions 
+SELECT id, code, name, description, breakdown, is_active, starts_at, expires_at, created_at, service_id, attachments FROM promotions 
 WHERE code = $1 
   AND is_active = true 
   AND (expires_at IS NULL OR expires_at > NOW())
@@ -107,12 +113,14 @@ func (q *Queries) GetActivePromoByCode(ctx context.Context, code string) (Promot
 		&i.StartsAt,
 		&i.ExpiresAt,
 		&i.CreatedAt,
+		&i.ServiceID,
+		pq.Array(&i.Attachments),
 	)
 	return i, err
 }
 
 const getActivePromos = `-- name: GetActivePromos :many
-SELECT id, code, name, description, breakdown, is_active, starts_at, expires_at, created_at FROM promotions 
+SELECT id, code, name, description, breakdown, is_active, starts_at, expires_at, created_at, service_id, attachments FROM promotions 
 WHERE is_active = true
 ORDER BY 
     created_at DESC
@@ -144,6 +152,8 @@ func (q *Queries) GetActivePromos(ctx context.Context, arg GetActivePromosParams
 			&i.StartsAt,
 			&i.ExpiresAt,
 			&i.CreatedAt,
+			&i.ServiceID,
+			pq.Array(&i.Attachments),
 		); err != nil {
 			return nil, err
 		}
@@ -159,7 +169,7 @@ func (q *Queries) GetActivePromos(ctx context.Context, arg GetActivePromosParams
 }
 
 const getPromotionByID = `-- name: GetPromotionByID :one
-SELECT id, code, name, description, breakdown, is_active, starts_at, expires_at, created_at FROM promotions WHERE id = $1 LIMIT 1
+SELECT id, code, name, description, breakdown, is_active, starts_at, expires_at, created_at, service_id, attachments FROM promotions WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetPromotionByID(ctx context.Context, id uuid.UUID) (Promotion, error) {
@@ -175,12 +185,14 @@ func (q *Queries) GetPromotionByID(ctx context.Context, id uuid.UUID) (Promotion
 		&i.StartsAt,
 		&i.ExpiresAt,
 		&i.CreatedAt,
+		&i.ServiceID,
+		pq.Array(&i.Attachments),
 	)
 	return i, err
 }
 
 const listActivePromotions = `-- name: ListActivePromotions :many
-SELECT id, code, name, description, breakdown, is_active, starts_at, expires_at, created_at FROM promotions 
+SELECT id, code, name, description, breakdown, is_active, starts_at, expires_at, created_at, service_id, attachments FROM promotions 
 WHERE is_active = true 
 ORDER BY created_at DESC
 `
@@ -204,6 +216,8 @@ func (q *Queries) ListActivePromotions(ctx context.Context) ([]Promotion, error)
 			&i.StartsAt,
 			&i.ExpiresAt,
 			&i.CreatedAt,
+			&i.ServiceID,
+			pq.Array(&i.Attachments),
 		); err != nil {
 			return nil, err
 		}
@@ -219,7 +233,7 @@ func (q *Queries) ListActivePromotions(ctx context.Context) ([]Promotion, error)
 }
 
 const listPromos = `-- name: ListPromos :many
-SELECT id, code, name, description, breakdown, is_active, starts_at, expires_at, created_at FROM promotions ORDER BY created_at DESC LIMIT $1 OFFSET $2
+SELECT id, code, name, description, breakdown, is_active, starts_at, expires_at, created_at, service_id, attachments FROM promotions ORDER BY created_at DESC LIMIT $1 OFFSET $2
 `
 
 type ListPromosParams struct {
@@ -246,6 +260,8 @@ func (q *Queries) ListPromos(ctx context.Context, arg ListPromosParams) ([]Promo
 			&i.StartsAt,
 			&i.ExpiresAt,
 			&i.CreatedAt,
+			&i.ServiceID,
+			pq.Array(&i.Attachments),
 		); err != nil {
 			return nil, err
 		}
@@ -258,18 +274,4 @@ func (q *Queries) ListPromos(ctx context.Context, arg ListPromosParams) ([]Promo
 		return nil, err
 	}
 	return items, nil
-}
-
-const updateServicePromo = `-- name: UpdateServicePromo :exec
-UPDATE services SET active_promo_ids = $2 WHERE id = $1
-`
-
-type UpdateServicePromoParams struct {
-	ID             uuid.UUID
-	ActivePromoIds []string
-}
-
-func (q *Queries) UpdateServicePromo(ctx context.Context, arg UpdateServicePromoParams) error {
-	_, err := q.db.ExecContext(ctx, updateServicePromo, arg.ID, pq.Array(arg.ActivePromoIds))
-	return err
 }

@@ -237,6 +237,8 @@ type Promotion struct {
 	StartsAt    sql.NullTime
 	ExpiresAt   sql.NullTime
 	CreatedAt   sql.NullTime
+	ServiceID   uuid.NullUUID
+	Attachments []string
 }
 
 type Quote struct {
@@ -267,6 +269,7 @@ type QuoteRequest struct {
 	Budget      sql.NullString
 	PromoIds    []string
 	VnR2Key     string
+	VideoKey    string
 }
 
 type RefreshToken struct {
@@ -280,17 +283,16 @@ type RefreshToken struct {
 }
 
 type Service struct {
-	ID             uuid.UUID
-	Name           string
-	Description    string
-	Category       string
-	IsActive       bool
-	IsFeatured     bool
-	Image          string
-	Tags           []string
-	CreatedAt      time.Time
-	ActivePromoIds []string
-	MinPrice       string
+	ID          uuid.UUID
+	Name        string
+	Description string
+	Category    string
+	IsActive    bool
+	IsFeatured  bool
+	Image       string
+	Tags        []string
+	CreatedAt   time.Time
+	MinPrice    string
 }
 
 type User struct {

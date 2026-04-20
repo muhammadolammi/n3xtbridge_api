@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/muhammadolammi/n3xtbridge_api/internal/handlers"
 	"github.com/muhammadolammi/n3xtbridge_api/internal/mailer"
 	payment "github.com/muhammadolammi/n3xtbridge_api/internal/payments"
@@ -49,17 +52,19 @@ func buildConfig() handlers.Config {
 	// R2 CONFIG
 	r2AccountId := os.Getenv("R2_ACCOUNT_ID")
 	r2Bucket := os.Getenv("R2_BUCKET")
+	r2PubBucket := os.Getenv("R2_BUCKET_PUB")
 	r2SecretKey := os.Getenv("R2_SECRET_KEY")
 	r2AccessKey := os.Getenv("R2_ACCESS_KEY")
-	if r2AccountId == "" || r2Bucket == "" || r2SecretKey == "" || r2AccessKey == "" {
-		log.Panicln("Incomplete R2 configuration in environment variables. Please set R2_ACCOUNT_ID, R2_BUCKET, R2_SECRET_KEY, and R2_ACCESS_KEY.")
+	if r2AccountId == "" || r2Bucket == "" || r2PubBucket == "" || r2SecretKey == "" || r2AccessKey == "" {
+		log.Panicln("Incomplete R2 configuration in environment variables. Please set R2_ACCOUNT_ID, R2_BUCKET,R2_BUCKET_PUB, R2_SECRET_KEY, and R2_ACCESS_KEY.")
 	}
 
 	r2Config := handlers.R2Config{
-		AccountID: r2AccountId,
-		AccessKey: r2AccessKey,
-		SecretKey: r2SecretKey,
-		Bucket:    r2Bucket,
+		AccountID:     r2AccountId,
+		AccessKey:     r2AccessKey,
+		SecretKey:     r2SecretKey,
+		PrivateBucket: r2Bucket,
+		PublicBucket:  r2PubBucket,
 	}
 
 	return handlers.Config{
@@ -88,4 +93,11 @@ func loadAWSConfig(cfg *handlers.Config, r2Config *handlers.R2Config) {
 		return
 	}
 	cfg.AwsConfig = &awsConfig
+	client := s3.NewFromConfig(*cfg.AwsConfig, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(fmt.Sprintf("https://%s.r2.cloudflarestorage.com", cfg.R2.AccountID))
+		o.UsePathStyle = true
+	})
+
+	presignClient := s3.NewPresignClient(client)
+	cfg.PresignClient = presignClient
 }
