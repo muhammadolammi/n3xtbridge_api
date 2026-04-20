@@ -119,37 +119,3 @@ func FinalizePayment(ctx context.Context, db *sql.DB, queries *database.Queries,
 
 	return tx.Commit()
 }
-
-func CreatePromotionAndLinkWithService(ctx context.Context, params CreatePromotionAndLinkWithServiceParam) (database.Promotion, error) {
-	// 1. Start the transaction
-	tx, err := params.Db.BeginTx(ctx, nil)
-	if err != nil {
-		return database.Promotion{}, err
-	}
-
-	// Ensure rollback happens if any error occurs (or if we forget to commit)
-	defer tx.Rollback()
-
-	// 2. Bind the generated queries to this transaction
-	qtx := params.Queries.WithTx(tx)
-	promo, err := qtx.CreatePromotion(ctx, params.CreatePromotionParam)
-	if err != nil {
-		return database.Promotion{}, fmt.Errorf("failed to create  promotion: %w", err)
-	}
-
-	// 3. Operation A: Accept the quote
-	currentPromos := params.Service.ActivePromoIds
-
-	currentPromos = append(currentPromos, promo.ID.String())
-
-	err = qtx.UpdateServicePromo(ctx, database.UpdateServicePromoParams{
-		ID:             params.Service.ID,
-		ActivePromoIds: currentPromos,
-	})
-	if err != nil {
-		return database.Promotion{}, fmt.Errorf("failed to update service promo: %w", err)
-	}
-
-	// 5. Commit everything if both succeeded
-	return promo, tx.Commit()
-}

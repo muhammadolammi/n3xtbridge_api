@@ -59,6 +59,7 @@ func server(apiConfig *handlers.Config) {
 	protectedRoute.Get("/services/{id}", apiConfig.GetServiceHandler)
 	protectedRoute.Get("/promotions", apiConfig.GetActivePromosHandler)
 	protectedRoute.Get("/promotions/{id}", apiConfig.GetPromoHandler)
+
 	protectedRoute.Get("/promotions/verify/{code}", apiConfig.VerifyPromoHandler)
 	protectedRoute.Get("/p/invoices/{id}", apiConfig.PublicGetInvoiceHandler)
 	protectedRoute.Post("/payments/{id}", apiConfig.InitializePaymentHandler)
@@ -86,7 +87,7 @@ func server(apiConfig *handlers.Config) {
 		r.Patch("/customer/quotes/{id}/status", apiConfig.CustomerUpdateQuoteStatusHandler)
 
 		r.Post("/storage/presign", apiConfig.PresignUploadHandler)
-
+		r.Get("/storage/presign/*", apiConfig.PresignGetHandler)
 	})
 
 	// Invoice routes
