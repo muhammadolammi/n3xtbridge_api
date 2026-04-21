@@ -13,6 +13,7 @@ import (
 	"github.com/muhammadolammi/n3xtbridge_api/internal/handlers"
 	"github.com/muhammadolammi/n3xtbridge_api/internal/mailer"
 	payment "github.com/muhammadolammi/n3xtbridge_api/internal/payments"
+	"github.com/redis/go-redis/v9"
 )
 
 func buildConfig() handlers.Config {
@@ -66,6 +67,11 @@ func buildConfig() handlers.Config {
 		PrivateBucket: r2Bucket,
 		PublicBucket:  r2PubBucket,
 	}
+	// REDIS
+	redisUrl := os.Getenv("REDIS_URL")
+	if redisUrl == "" {
+		log.Panicln("Incomplete Redis configuration in environment variables. Please set REDIS_URL")
+	}
 
 	return handlers.Config{
 		DBURL:        dburl,
@@ -79,6 +85,7 @@ func buildConfig() handlers.Config {
 		}),
 		PaystackSecret: paystackKey,
 		R2:             &r2Config,
+		RedisURL:       redisUrl,
 	}
 
 }
@@ -100,4 +107,21 @@ func loadAWSConfig(cfg *handlers.Config, r2Config *handlers.R2Config) {
 
 	presignClient := s3.NewPresignClient(client)
 	cfg.PresignClient = presignClient
+}
+
+func loadRedisClient(cfg *handlers.Config) {
+	option, err := redis.ParseURL(cfg.RedisURL)
+	if err != nil {
+		log.Panicln(`Error parsing REDIS_URL, must follow this format
+		 Tcp connection:
+		redis://<user>:<password>@<host>:<port>/<db_number>
+		Unix connection:
+		unix://<user>:<password>@</path/to/redis.sock>?db=<db_number>
+		`)
+
+	}
+	client := redis.NewClient(option)
+	client.FlushDB(context.Background())
+	cfg.RedisClient = client
+
 }

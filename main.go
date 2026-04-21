@@ -26,6 +26,7 @@ func main() {
 	// go infra.ConnectRabbit(ctx, &cfg)
 	go loadAWSConfig(&cfg, cfg.R2)
 	// go infra.ConnectPubSub(ctx, &cfg)
+	go loadRedisClient(&cfg)
 
 	infra.ConnectDB(ctx, &cfg)
 
