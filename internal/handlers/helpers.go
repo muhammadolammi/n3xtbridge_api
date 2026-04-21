@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"strconv"
 	"time"
@@ -135,4 +136,12 @@ func sendInvoiceEmail(cfg *Config, inv Invoice) {
 		_ = cfg.DBQueries.UpdateInvoiceReminderSentAt(context.Background(), inv.ID)
 		log.Printf("Invoice email reminder sent to %s for invoice %s", inv.CustomerEmail, inv.InvoiceNumber)
 	}
+}
+
+func getReqIP(req *http.Request) (string, error) {
+	host, _, err := net.SplitHostPort(req.RemoteAddr)
+	if err != nil {
+		return "", err
+	}
+	return host, nil
 }

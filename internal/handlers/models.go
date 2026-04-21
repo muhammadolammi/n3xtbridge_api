@@ -12,15 +12,16 @@ import (
 	"github.com/muhammadolammi/n3xtbridge_api/internal/mailer"
 	payment "github.com/muhammadolammi/n3xtbridge_api/internal/payments"
 	"github.com/muhammadolammi/n3xtbridge_api/shared"
+	"github.com/redis/go-redis/v9"
 )
 
 type Config struct {
-	DBURL          string
-	DBQueries      *database.Queries
-	DBConn         *sql.DB
-	ClientApiKey   string
-	JwtSecret      string
-	RateLimit      int
+	DBURL        string
+	DBQueries    *database.Queries
+	DBConn       *sql.DB
+	ClientApiKey string
+	JwtSecret    string
+	// RateLimit      int
 	Paystack       *payment.PaystackService
 	PaystackSecret string
 	IsProd         bool
@@ -32,6 +33,9 @@ type Config struct {
 	AuthService *goauth.AuthService
 	// R2 CONFIG
 	R2 *R2Config
+	// Redis
+	RedisClient *redis.Client
+	RedisURL    string
 }
 type R2Config struct {
 	AccountID     string
