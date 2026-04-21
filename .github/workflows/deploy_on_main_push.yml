@@ -82,3 +82,4 @@ jobs:
             R2_BUCKET_PUB=${{ secrets.R2_BUCKET_PUB }}
             R2_SECRET_KEY=${{ secrets.R2_SECRET_KEY }}
             R2_ACCESS_KEY=${{ secrets.R2_ACCESS_KEY }}
+            REDIS_URL=${{ secrets.REDIS_URL }}
