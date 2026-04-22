@@ -260,7 +260,6 @@ type QuoteRequest struct {
 	ID          uuid.UUID
 	UserID      uuid.UUID
 	ServiceID   uuid.UUID
-	ServiceName string
 	Description string
 	Attachments []string
 	Status      QuoteRequestStatus
