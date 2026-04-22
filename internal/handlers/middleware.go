@@ -65,6 +65,7 @@ func (cfg *Config) RateLimiter(limit int, window time.Duration) func(http.Handle
 			})
 		}
 	}
+	// log.Println("redis worked")
 	limiter := redis_rate.NewLimiter(cfg.RedisClient)
 
 	return func(next http.Handler) http.Handler {

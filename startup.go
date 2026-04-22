@@ -124,6 +124,7 @@ func loadRedisClient(cfg *handlers.Config) {
 	if err := client.Ping(ctx).Err(); err != nil {
 		log.Panicln("redis connection failed:", err)
 	}
+	log.Println("✅ Redis connected")
 
 	// client.FlushDB(context.Background())
 
