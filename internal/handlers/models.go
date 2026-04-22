@@ -127,13 +127,12 @@ type QuoteRequest struct {
 }
 
 type GetQuoteRequestsRow struct {
-	ID          uuid.UUID `json:"id"`
-	UserID      uuid.UUID `json:"user_id"`
-	ServiceID   uuid.UUID `json:"service_id"`
-	Description string    `json:"description"`
-	Attachments []string  `json:"attachments"`
-	PromoIDs    []string  `json:"promo_ids"`
-
+	ID          uuid.UUID          `json:"id"`
+	UserID      uuid.UUID          `json:"user_id"`
+	ServiceID   uuid.UUID          `json:"service_id"`
+	Description string             `json:"description"`
+	Attachments []string           `json:"attachments"`
+	PromoIDs    []string           `json:"promo_ids"`
 	Status      QuoteRequestStatus `json:"status"`
 	CreatedAt   time.Time          `json:"created_at"`
 	UpdatedAt   time.Time          `json:"updated_at"`

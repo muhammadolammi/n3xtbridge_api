@@ -37,15 +37,14 @@ func (q *Queries) CountUserQuoteRequests(ctx context.Context, userID uuid.UUID) 
 }
 
 const createQuoteRequest = `-- name: CreateQuoteRequest :one
-INSERT INTO quote_requests (user_id, service_id,service_name,  description, attachments, promo_ids, vn_r2_key, video_key)
-VALUES ($1, $2, $3, $4,$5, $6, $7,$8)
-RETURNING id, user_id, service_id, service_name, description, attachments, status, created_at, updated_at, budget, promo_ids, vn_r2_key, video_key
+INSERT INTO quote_requests (user_id, service_id,  description, attachments, promo_ids, vn_r2_key, video_key)
+VALUES ($1, $2, $3, $4,$5, $6, $7)
+RETURNING id, user_id, service_id, description, attachments, status, created_at, updated_at, budget, promo_ids, vn_r2_key, video_key
 `
 
 type CreateQuoteRequestParams struct {
 	UserID      uuid.UUID
 	ServiceID   uuid.UUID
-	ServiceName string
 	Description string
 	Attachments []string
 	PromoIds    []string
@@ -57,7 +56,6 @@ func (q *Queries) CreateQuoteRequest(ctx context.Context, arg CreateQuoteRequest
 	row := q.db.QueryRowContext(ctx, createQuoteRequest,
 		arg.UserID,
 		arg.ServiceID,
-		arg.ServiceName,
 		arg.Description,
 		pq.Array(arg.Attachments),
 		pq.Array(arg.PromoIds),
@@ -69,7 +67,6 @@ func (q *Queries) CreateQuoteRequest(ctx context.Context, arg CreateQuoteRequest
 		&i.ID,
 		&i.UserID,
 		&i.ServiceID,
-		&i.ServiceName,
 		&i.Description,
 		pq.Array(&i.Attachments),
 		&i.Status,
@@ -84,7 +81,7 @@ func (q *Queries) CreateQuoteRequest(ctx context.Context, arg CreateQuoteRequest
 }
 
 const getQuoteRequest = `-- name: GetQuoteRequest :one
-SELECT id, user_id, service_id, service_name, description, attachments, status, created_at, updated_at, budget, promo_ids, vn_r2_key, video_key FROM quote_requests
+SELECT id, user_id, service_id, description, attachments, status, created_at, updated_at, budget, promo_ids, vn_r2_key, video_key FROM quote_requests
 WHERE id=$1
 `
 
@@ -95,7 +92,6 @@ func (q *Queries) GetQuoteRequest(ctx context.Context, id uuid.UUID) (QuoteReque
 		&i.ID,
 		&i.UserID,
 		&i.ServiceID,
-		&i.ServiceName,
 		&i.Description,
 		pq.Array(&i.Attachments),
 		&i.Status,
@@ -111,11 +107,10 @@ func (q *Queries) GetQuoteRequest(ctx context.Context, id uuid.UUID) (QuoteReque
 
 const getQuoteRequests = `-- name: GetQuoteRequests :many
 SELECT 
-    qr.id, qr.user_id, qr.service_id, qr.service_name, qr.description, qr.attachments, qr.status, qr.created_at, qr.updated_at, qr.budget, qr.promo_ids, qr.vn_r2_key, qr.video_key, 
+    qr.id, qr.user_id, qr.service_id, qr.description, qr.attachments, qr.status, qr.created_at, qr.updated_at, qr.budget, qr.promo_ids, qr.vn_r2_key, qr.video_key, 
     u.email as user_email, 
     u.first_name as user_name,
     s.name as service_name
-    
 FROM quote_requests qr
 JOIN users u ON qr.user_id = u.id
 JOIN services s ON qr.service_id = s.id
@@ -129,22 +124,21 @@ type GetQuoteRequestsParams struct {
 }
 
 type GetQuoteRequestsRow struct {
-	ID            uuid.UUID
-	UserID        uuid.UUID
-	ServiceID     uuid.UUID
-	ServiceName   string
-	Description   string
-	Attachments   []string
-	Status        QuoteRequestStatus
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	Budget        sql.NullString
-	PromoIds      []string
-	VnR2Key       string
-	VideoKey      string
-	UserEmail     string
-	UserName      string
-	ServiceName_2 string
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	ServiceID   uuid.UUID
+	Description string
+	Attachments []string
+	Status      QuoteRequestStatus
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Budget      sql.NullString
+	PromoIds    []string
+	VnR2Key     string
+	VideoKey    string
+	UserEmail   string
+	UserName    string
+	ServiceName string
 }
 
 func (q *Queries) GetQuoteRequests(ctx context.Context, arg GetQuoteRequestsParams) ([]GetQuoteRequestsRow, error) {
@@ -160,7 +154,6 @@ func (q *Queries) GetQuoteRequests(ctx context.Context, arg GetQuoteRequestsPara
 			&i.ID,
 			&i.UserID,
 			&i.ServiceID,
-			&i.ServiceName,
 			&i.Description,
 			pq.Array(&i.Attachments),
 			&i.Status,
@@ -172,7 +165,7 @@ func (q *Queries) GetQuoteRequests(ctx context.Context, arg GetQuoteRequestsPara
 			&i.VideoKey,
 			&i.UserEmail,
 			&i.UserName,
-			&i.ServiceName_2,
+			&i.ServiceName,
 		); err != nil {
 			return nil, err
 		}
@@ -189,7 +182,7 @@ func (q *Queries) GetQuoteRequests(ctx context.Context, arg GetQuoteRequestsPara
 
 const getUserQuoteRequests = `-- name: GetUserQuoteRequests :many
 SELECT 
-  qr.id, qr.user_id, qr.service_id, qr.service_name, qr.description, qr.attachments, qr.status, qr.created_at, qr.updated_at, qr.budget, qr.promo_ids, qr.vn_r2_key, qr.video_key,
+  qr.id, qr.user_id, qr.service_id, qr.description, qr.attachments, qr.status, qr.created_at, qr.updated_at, qr.budget, qr.promo_ids, qr.vn_r2_key, qr.video_key,
   s.name AS service_name,
   q.id AS quote_id
 FROM quote_requests qr
@@ -207,21 +200,20 @@ type GetUserQuoteRequestsParams struct {
 }
 
 type GetUserQuoteRequestsRow struct {
-	ID            uuid.UUID
-	UserID        uuid.UUID
-	ServiceID     uuid.UUID
-	ServiceName   string
-	Description   string
-	Attachments   []string
-	Status        QuoteRequestStatus
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	Budget        sql.NullString
-	PromoIds      []string
-	VnR2Key       string
-	VideoKey      string
-	ServiceName_2 string
-	QuoteID       uuid.NullUUID
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	ServiceID   uuid.UUID
+	Description string
+	Attachments []string
+	Status      QuoteRequestStatus
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Budget      sql.NullString
+	PromoIds    []string
+	VnR2Key     string
+	VideoKey    string
+	ServiceName string
+	QuoteID     uuid.NullUUID
 }
 
 // Use LEFT JOIN so requests without quotes still show up
@@ -238,7 +230,6 @@ func (q *Queries) GetUserQuoteRequests(ctx context.Context, arg GetUserQuoteRequ
 			&i.ID,
 			&i.UserID,
 			&i.ServiceID,
-			&i.ServiceName,
 			&i.Description,
 			pq.Array(&i.Attachments),
 			&i.Status,
@@ -248,7 +239,7 @@ func (q *Queries) GetUserQuoteRequests(ctx context.Context, arg GetUserQuoteRequ
 			pq.Array(&i.PromoIds),
 			&i.VnR2Key,
 			&i.VideoKey,
-			&i.ServiceName_2,
+			&i.ServiceName,
 			&i.QuoteID,
 		); err != nil {
 			return nil, err

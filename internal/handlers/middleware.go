@@ -78,7 +78,7 @@ func (cfg *Config) RateLimiter(limit int, window time.Duration) func(http.Handle
 
 			// create a unique key for that endpoint, since diffrent endpoint have diffrent limit
 			// log.Println("lets see url", r.URL)
-			log.Println("rate limit called.  url path", r.URL.Path)
+			// log.Println("rate limit called.  url path", r.URL.Path)
 
 			requestPath := r.URL.Path
 			key := fmt.Sprintf("ratelimit:%s:%s", clientIP, requestPath)
@@ -97,7 +97,7 @@ func (cfg *Config) RateLimiter(limit int, window time.Duration) func(http.Handle
 				return
 			}
 
-			log.Printf("[RATE LIMIT] Key: %s | Limit: %d | Window: %v | Remaining: %d", key, limit, window, res.Allowed)
+			// log.Printf("[RATE LIMIT] Key: %s | Limit: %d | Window: %v | Remaining: %d", key, limit, window, res.Allowed)
 
 			if res.Allowed <= 0 {
 				log.Println(res)

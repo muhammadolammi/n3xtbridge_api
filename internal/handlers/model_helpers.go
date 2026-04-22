@@ -338,7 +338,7 @@ func dbPromoToPromo(dbPromo database.Promotion) Promotion {
 	dbBreakdowns := []DBDiscount{}
 	err := json.Unmarshal(dbPromo.Breakdown, &dbBreakdowns)
 	if err != nil {
-		log.Printf("Error unmarshaling breakdown for Promo %s: v", dbPromo.ID, err)
+		log.Printf("Error unmarshaling breakdown for Promo %s: %v", dbPromo.ID, err)
 	}
 	discounts := DbDiscountsToDiscounts(dbBreakdowns)
 

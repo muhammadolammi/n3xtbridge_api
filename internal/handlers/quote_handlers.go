@@ -19,7 +19,6 @@ func (cfg *Config) CreateQuoteRequestHandler(w http.ResponseWriter, r *http.Requ
 	input := struct {
 		UserID      uuid.UUID `json:"user_id"`
 		ServiceID   uuid.UUID `json:"service_id"`
-		ServiceName string    `json:"service_name"`
 		Description string    `json:"description"`
 		Attachments []string  `json:"attachments"`
 		VNR2Key     string    `json:"vn_key"`
@@ -50,7 +49,6 @@ func (cfg *Config) CreateQuoteRequestHandler(w http.ResponseWriter, r *http.Requ
 
 	quoteRequest, err := cfg.DBQueries.CreateQuoteRequest(r.Context(), database.CreateQuoteRequestParams{
 		UserID:      input.UserID,
-		ServiceName: input.ServiceName,
 		ServiceID:   input.ServiceID,
 		Description: input.Description,
 		Attachments: input.Attachments,
@@ -158,7 +156,9 @@ func (cfg *Config) AdminGetQuoteRequestsHandler(w http.ResponseWriter, r *http.R
 		QuoteRequests: DbQuoteRequestRowsToQuoteRequestsRow(qrs),
 		Total:         count,
 	}
-	log.Println(res)
+	if count > 0 {
+		log.Println(qrs[0].ServiceName)
+	}
 
 	helpers.RespondWithJson(w, http.StatusOK, res)
 
