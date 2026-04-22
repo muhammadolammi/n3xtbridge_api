@@ -56,59 +56,63 @@ func (cfg *Config) RequireRole(allowedRoles ...string) func(http.Handler) http.H
 	}
 }
 
-// RateLimiter is a custom Chi middleware
+// RateLimiter is a custom Chi middleware (FAIL-OPEN SAFE VERSION)
 func (cfg *Config) RateLimiter(limit int, window time.Duration) func(http.Handler) http.Handler {
-	if cfg.RedisClient == nil {
-		return func(next http.Handler) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				next.ServeHTTP(w, r)
-			})
-		}
-	}
-	// log.Println("redis worked")
-	limiter := redis_rate.NewLimiter(cfg.RedisClient)
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+			// Always allow OPTIONS (CORS preflight)
 			if r.Method == http.MethodOptions {
 				next.ServeHTTP(w, r)
 				return
 			}
-			// Use Client IP as the unique key
+
+			// If Redis is not available → FAIL OPEN
+			if cfg.RedisClient == nil {
+				log.Println("⚠️ Redis not available, skipping rate limiter")
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// Safe recovery in case redis_rate panics internally
+			defer func() {
+				if rec := recover(); rec != nil {
+					log.Println("⚠️ Rate limiter panic recovered:", rec)
+					next.ServeHTTP(w, r)
+				}
+			}()
+
+			limiter := redis_rate.NewLimiter(cfg.RedisClient)
+
+			// Extract client IP
 			clientIP := r.RemoteAddr
 			if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 				clientIP = xff
-			} else {
-				if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
-					clientIP = host
-				}
+			} else if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+				clientIP = host
 			}
-
-			// create a unique key for that endpoint, since diffrent endpoint have diffrent limit
-			// log.Println("lets see url", r.URL)
-			// log.Println("rate limit called.  url path", r.URL.Path)
 
 			requestPath := r.URL.Path
 			key := fmt.Sprintf("ratelimit:%s:%s", clientIP, requestPath)
 
-			// Perform the check
+			// Try rate limit check
 			res, err := limiter.Allow(r.Context(), key, redis_rate.Limit{
 				Rate:   limit,
 				Period: window,
 				Burst:  limit,
 			})
 
+			// If Redis fails → FAIL OPEN
 			if err != nil {
-				// If Redis is down, decide if you want to fail-open or fail-closed
-				// Fail-open (allow request) is usually safer for UX
+				log.Println("⚠️ Redis rate limit error, allowing request:", err)
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			// log.Printf("[RATE LIMIT] Key: %s | Limit: %d | Window: %v | Remaining: %d", key, limit, window, res.Allowed)
-
+			// If allowed → continue
 			if res.Allowed <= 0 {
-				log.Println(res)
+				log.Println("🚫 Rate limit exceeded:", key)
 				helpers.RespondWithError(w, http.StatusTooManyRequests, "Too many requests.")
 				return
 			}
