@@ -156,9 +156,6 @@ func (cfg *Config) AdminGetQuoteRequestsHandler(w http.ResponseWriter, r *http.R
 		QuoteRequests: DbQuoteRequestRowsToQuoteRequestsRow(qrs),
 		Total:         count,
 	}
-	if count > 0 {
-		log.Println(qrs[0].ServiceName)
-	}
 
 	helpers.RespondWithJson(w, http.StatusOK, res)
 

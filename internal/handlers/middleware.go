@@ -58,6 +58,13 @@ func (cfg *Config) RequireRole(allowedRoles ...string) func(http.Handler) http.H
 
 // RateLimiter is a custom Chi middleware
 func (cfg *Config) RateLimiter(limit int, window time.Duration) func(http.Handler) http.Handler {
+	if cfg.RedisClient == nil {
+		return func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				next.ServeHTTP(w, r)
+			})
+		}
+	}
 	limiter := redis_rate.NewLimiter(cfg.RedisClient)
 
 	return func(next http.Handler) http.Handler {
