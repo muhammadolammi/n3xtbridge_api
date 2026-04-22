@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -118,13 +117,13 @@ func loadRedisClient(cfg *handlers.Config) {
 
 	client := redis.NewClient(option)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// defer cancel()
 
-	if err := client.Ping(ctx).Err(); err != nil {
-		log.Panicln("redis connection failed:", err)
-	}
-	log.Println("✅ Redis connected")
+	// if err := client.Ping(ctx).Err(); err != nil {
+	// 	log.Panicln("redis connection failed:", err)
+	// }
+	// log.Println("✅ Redis connected")
 
 	// client.FlushDB(context.Background())
 
