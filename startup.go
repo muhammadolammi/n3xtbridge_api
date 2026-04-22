@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -112,16 +113,19 @@ func loadAWSConfig(cfg *handlers.Config, r2Config *handlers.R2Config) {
 func loadRedisClient(cfg *handlers.Config) {
 	option, err := redis.ParseURL(cfg.RedisURL)
 	if err != nil {
-		log.Panicln(`Error parsing REDIS_URL, must follow this format
-		 Tcp connection:
-		redis://<user>:<password>@<host>:<port>/<db_number>
-		Unix connection:
-		unix://<user>:<password>@</path/to/redis.sock>?db=<db_number>
-		`)
-
+		log.Panicln("invalid REDIS_URL:", err)
 	}
-	client := redis.NewClient(option)
-	client.FlushDB(context.Background())
-	cfg.RedisClient = client
 
+	client := redis.NewClient(option)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := client.Ping(ctx).Err(); err != nil {
+		log.Panicln("redis connection failed:", err)
+	}
+
+	// client.FlushDB(context.Background())
+
+	cfg.RedisClient = client
 }
