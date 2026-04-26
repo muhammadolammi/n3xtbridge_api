@@ -116,6 +116,7 @@ func (cfg *Config) RateLimiter(limit int, window time.Duration) func(http.Handle
 				helpers.RespondWithError(w, http.StatusTooManyRequests, "Too many requests.")
 				return
 			}
+			// log.Println("rate limit working....")
 
 			next.ServeHTTP(w, r)
 		})
