@@ -70,7 +70,7 @@ func (cfg *Config) RateLimiter(limit int, window time.Duration) func(http.Handle
 
 			// If Redis is not available → FAIL OPEN
 			if cfg.RedisClient == nil {
-				log.Println("⚠️ Redis not available, skipping rate limiter")
+				// log.Println("⚠️ Redis not available, skipping rate limiter")
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -78,7 +78,7 @@ func (cfg *Config) RateLimiter(limit int, window time.Duration) func(http.Handle
 			// Safe recovery in case redis_rate panics internally
 			defer func() {
 				if rec := recover(); rec != nil {
-					log.Println("⚠️ Rate limiter panic recovered:", rec)
+					// log.Println("⚠️ Rate limiter panic recovered:", rec)
 					next.ServeHTTP(w, r)
 				}
 			}()
@@ -105,14 +105,14 @@ func (cfg *Config) RateLimiter(limit int, window time.Duration) func(http.Handle
 
 			// If Redis fails → FAIL OPEN
 			if err != nil {
-				log.Println("⚠️ Redis rate limit error, allowing request:", err)
+				// log.Println("⚠️ Redis rate limit error, allowing request:", err)
 				next.ServeHTTP(w, r)
 				return
 			}
 
 			// If allowed → continue
 			if res.Allowed <= 0 {
-				log.Println("🚫 Rate limit exceeded:", key)
+				// log.Println("🚫 Rate limit exceeded:", key)
 				helpers.RespondWithError(w, http.StatusTooManyRequests, "Too many requests.")
 				return
 			}

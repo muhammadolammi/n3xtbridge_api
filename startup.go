@@ -122,7 +122,11 @@ func loadRedisClient(cfg *handlers.Config) {
 	defer cancel()
 
 	if err := client.Ping(ctx).Err(); err != nil {
-		log.Panicln("redis connection failed:", err)
+		// log.Panicln("redis connection failed:", err)
+		// no panic because we want the server to start even if redis is not available, but we log the error
+		log.Println("redis connection failed:", err)
+		return
+
 	}
 	log.Println("✅ Redis connected")
 
