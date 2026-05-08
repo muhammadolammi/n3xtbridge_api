@@ -21,6 +21,15 @@ ORDER BY
     created_at DESC
 LIMIT $1 OFFSET $2;
 
+-- name: GetActiveServicesByCategory :many
+-- Used for the landing page
+SELECT * FROM services 
+WHERE is_active = true AND category_id = $3
+ORDER BY 
+    is_featured DESC, 
+    created_at DESC
+LIMIT $1 OFFSET $2;
+
 -- name: GetServices :many
 -- Used for the admin dashboard (shows everything)
 SELECT * FROM services 
@@ -36,3 +45,4 @@ UPDATE services SET is_active = $2 WHERE id = $1;
 SELECT COUNT(*) FROM services WHERE is_active = true;
 -- name: CountServices :one
 SELECT COUNT(*) FROM services;
+

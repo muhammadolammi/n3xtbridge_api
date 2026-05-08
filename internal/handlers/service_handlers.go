@@ -67,10 +67,41 @@ func (cfg *Config) GetActiveServicesHandler(w http.ResponseWriter, r *http.Reque
 	if err != nil || offset < 0 {
 		offset = 0 // Default
 	}
+	category := r.URL.Query().Get("category")
 
-	services, err := cfg.DBQueries.GetActiveServices(r.Context(), database.GetActiveServicesParams{
+	if category == "" {
+		services, err := cfg.DBQueries.GetActiveServices(r.Context(), database.GetActiveServicesParams{
+			Limit:  int32(limit),
+			Offset: int32(offset),
+		})
+		if err != nil {
+			log.Println("DB ERROR error getting services: " + err.Error())
+			helpers.RespondWithError(w, http.StatusInternalServerError, "error getting services")
+			return
+		}
+		count, err := cfg.DBQueries.CountActiveServices(r.Context())
+		if err != nil {
+			log.Println("DB ERROR error getting active services count: " + err.Error())
+			helpers.RespondWithError(w, http.StatusInternalServerError, "error getting active services count")
+			return
+		}
+		res := struct {
+			Services []Service `json:"services"`
+			Total    int64     `json:"total"`
+		}{
+			Services: dbServicesToServices(services),
+			Total:    count,
+		}
+		helpers.RespondWithJson(w, http.StatusOK, res)
+		return
+	}
+	services, err := cfg.DBQueries.GetActiveServicesByCategory(r.Context(), database.GetActiveServicesByCategoryParams{
 		Limit:  int32(limit),
 		Offset: int32(offset),
+		CategoryID: uuid.NullUUID{
+			UUID:  uuid.MustParse(category),
+			Valid: true,
+		},
 	})
 	if err != nil {
 		log.Println("DB ERROR error getting services: " + err.Error())
@@ -91,6 +122,7 @@ func (cfg *Config) GetActiveServicesHandler(w http.ResponseWriter, r *http.Reque
 		Total:    count,
 	}
 	helpers.RespondWithJson(w, http.StatusOK, res)
+
 }
 
 func (cfg *Config) AdminListAllServicesHandler(w http.ResponseWriter, r *http.Request) {

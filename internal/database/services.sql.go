@@ -127,6 +127,56 @@ func (q *Queries) GetActiveServices(ctx context.Context, arg GetActiveServicesPa
 	return items, nil
 }
 
+const getActiveServicesByCategory = `-- name: GetActiveServicesByCategory :many
+SELECT id, name, description, is_active, is_featured, image, tags, created_at, min_price, category_id FROM services 
+WHERE is_active = true AND category_id = $3
+ORDER BY 
+    is_featured DESC, 
+    created_at DESC
+LIMIT $1 OFFSET $2
+`
+
+type GetActiveServicesByCategoryParams struct {
+	Limit      int32
+	Offset     int32
+	CategoryID uuid.NullUUID
+}
+
+// Used for the landing page
+func (q *Queries) GetActiveServicesByCategory(ctx context.Context, arg GetActiveServicesByCategoryParams) ([]Service, error) {
+	rows, err := q.db.QueryContext(ctx, getActiveServicesByCategory, arg.Limit, arg.Offset, arg.CategoryID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Service
+	for rows.Next() {
+		var i Service
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.IsActive,
+			&i.IsFeatured,
+			&i.Image,
+			pq.Array(&i.Tags),
+			&i.CreatedAt,
+			&i.MinPrice,
+			&i.CategoryID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getService = `-- name: GetService :one
 SELECT id, name, description, is_active, is_featured, image, tags, created_at, min_price, category_id FROM services WHERE id = $1
 `
