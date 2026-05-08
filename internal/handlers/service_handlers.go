@@ -16,32 +16,35 @@ import (
 
 func (cfg *Config) CreateServiceHandler(w http.ResponseWriter, r *http.Request) {
 	input := struct {
-		Name        string   `json:"name"`
-		Description string   `json:"description"`
-		Category    string   `json:"category"`
-		IsFeatured  bool     `json:"is_featured"`
-		Tags        []string `json:"tags"`
-		Image       string   `json:"image"`
-		MinPrice    string   `json:"min_price"`
+		Name        string    `json:"name"`
+		Description string    `json:"description"`
+		IsFeatured  bool      `json:"is_featured"`
+		Tags        []string  `json:"tags"`
+		Image       string    `json:"image"`
+		MinPrice    string    `json:"min_price"`
+		CategoryID  uuid.UUID `json:"category_id"`
 	}{}
 	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
 		helpers.RespondWithError(w, http.StatusBadRequest, "invalid request, err: "+err.Error())
 		return
 	}
-	if input.Name == "" || input.Category == "" || input.Description == "" || input.Image == "" {
-		helpers.RespondWithError(w, http.StatusBadRequest, "invalid request, name, category, description and image can't be empty ")
+	if input.Name == "" || input.CategoryID == uuid.Nil || input.Description == "" || input.Image == "" {
+		helpers.RespondWithError(w, http.StatusBadRequest, "invalid request, name, description, category_id and image can't be empty ")
 		return
 	}
 
 	service, err := cfg.DBQueries.CreateService(r.Context(), database.CreateServiceParams{
 		Name:        input.Name,
 		Description: input.Description,
-		Category:    input.Category,
 		IsFeatured:  input.IsFeatured,
-		Tags:        pq.StringArray(input.Tags),
-		Image:       input.Image,
-		MinPrice:    input.MinPrice,
+		CategoryID: uuid.NullUUID{
+			UUID:  input.CategoryID,
+			Valid: true,
+		},
+		Tags:     pq.StringArray(input.Tags),
+		Image:    input.Image,
+		MinPrice: input.MinPrice,
 	})
 	if err != nil {
 		log.Println("DB ERROR: " + err.Error())

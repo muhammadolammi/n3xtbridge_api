@@ -68,7 +68,6 @@ type Service struct {
 	ID          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
-	Category    string    `json:"category"`
 	IsActive    bool      `json:"is_active"`
 	IsFeatured  bool      `json:"is_featured"`
 	Image       string    `json:"image"`
@@ -228,4 +227,12 @@ type Promotion struct {
 	CreatedAt   time.Time         `json:"created_at"`
 	ServiceID   string            `json:"service_id"`
 	Attachments []string          `json:"attachments"`
+}
+type ServiceCategory struct {
+	ID           string `json:"id"`
+	Slug         string `json:"slug"`
+	Name         string `json:"name"`
+	Description  string `json:"description"`
+	Icon         string `json:"icon"`
+	ServiceCount int    `json:"service_count"`
 }

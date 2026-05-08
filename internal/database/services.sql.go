@@ -36,50 +36,50 @@ func (q *Queries) CountServices(ctx context.Context) (int64, error) {
 
 const createService = `-- name: CreateService :one
 INSERT INTO services (
-    name, description, category, is_featured , tags , image, min_price
+    name, description, is_featured , tags , image, min_price, category_id
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7
-) RETURNING id, name, description, category, is_active, is_featured, image, tags, created_at, min_price
+) RETURNING id, name, description, is_active, is_featured, image, tags, created_at, min_price, category_id
 `
 
 type CreateServiceParams struct {
 	Name        string
 	Description string
-	Category    string
 	IsFeatured  bool
 	Tags        []string
 	Image       string
 	MinPrice    string
+	CategoryID  uuid.NullUUID
 }
 
 func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (Service, error) {
 	row := q.db.QueryRowContext(ctx, createService,
 		arg.Name,
 		arg.Description,
-		arg.Category,
 		arg.IsFeatured,
 		pq.Array(arg.Tags),
 		arg.Image,
 		arg.MinPrice,
+		arg.CategoryID,
 	)
 	var i Service
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Description,
-		&i.Category,
 		&i.IsActive,
 		&i.IsFeatured,
 		&i.Image,
 		pq.Array(&i.Tags),
 		&i.CreatedAt,
 		&i.MinPrice,
+		&i.CategoryID,
 	)
 	return i, err
 }
 
 const getActiveServices = `-- name: GetActiveServices :many
-SELECT id, name, description, category, is_active, is_featured, image, tags, created_at, min_price FROM services 
+SELECT id, name, description, is_active, is_featured, image, tags, created_at, min_price, category_id FROM services 
 WHERE is_active = true
 ORDER BY 
     is_featured DESC, 
@@ -106,13 +106,13 @@ func (q *Queries) GetActiveServices(ctx context.Context, arg GetActiveServicesPa
 			&i.ID,
 			&i.Name,
 			&i.Description,
-			&i.Category,
 			&i.IsActive,
 			&i.IsFeatured,
 			&i.Image,
 			pq.Array(&i.Tags),
 			&i.CreatedAt,
 			&i.MinPrice,
+			&i.CategoryID,
 		); err != nil {
 			return nil, err
 		}
@@ -128,7 +128,7 @@ func (q *Queries) GetActiveServices(ctx context.Context, arg GetActiveServicesPa
 }
 
 const getService = `-- name: GetService :one
-SELECT id, name, description, category, is_active, is_featured, image, tags, created_at, min_price FROM services WHERE id = $1
+SELECT id, name, description, is_active, is_featured, image, tags, created_at, min_price, category_id FROM services WHERE id = $1
 `
 
 func (q *Queries) GetService(ctx context.Context, id uuid.UUID) (Service, error) {
@@ -138,19 +138,19 @@ func (q *Queries) GetService(ctx context.Context, id uuid.UUID) (Service, error)
 		&i.ID,
 		&i.Name,
 		&i.Description,
-		&i.Category,
 		&i.IsActive,
 		&i.IsFeatured,
 		&i.Image,
 		pq.Array(&i.Tags),
 		&i.CreatedAt,
 		&i.MinPrice,
+		&i.CategoryID,
 	)
 	return i, err
 }
 
 const getServiceByName = `-- name: GetServiceByName :one
-SELECT id, name, description, category, is_active, is_featured, image, tags, created_at, min_price FROM services WHERE name = $1
+SELECT id, name, description, is_active, is_featured, image, tags, created_at, min_price, category_id FROM services WHERE name = $1
 `
 
 func (q *Queries) GetServiceByName(ctx context.Context, name string) (Service, error) {
@@ -160,19 +160,19 @@ func (q *Queries) GetServiceByName(ctx context.Context, name string) (Service, e
 		&i.ID,
 		&i.Name,
 		&i.Description,
-		&i.Category,
 		&i.IsActive,
 		&i.IsFeatured,
 		&i.Image,
 		pq.Array(&i.Tags),
 		&i.CreatedAt,
 		&i.MinPrice,
+		&i.CategoryID,
 	)
 	return i, err
 }
 
 const getServices = `-- name: GetServices :many
-SELECT id, name, description, category, is_active, is_featured, image, tags, created_at, min_price FROM services 
+SELECT id, name, description, is_active, is_featured, image, tags, created_at, min_price, category_id FROM services 
 ORDER BY 
     is_featured DESC, 
     created_at DESC
@@ -198,13 +198,13 @@ func (q *Queries) GetServices(ctx context.Context, arg GetServicesParams) ([]Ser
 			&i.ID,
 			&i.Name,
 			&i.Description,
-			&i.Category,
 			&i.IsActive,
 			&i.IsFeatured,
 			&i.Image,
 			pq.Array(&i.Tags),
 			&i.CreatedAt,
 			&i.MinPrice,
+			&i.CategoryID,
 		); err != nil {
 			return nil, err
 		}

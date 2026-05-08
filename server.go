@@ -57,6 +57,7 @@ func server(apiConfig *handlers.Config) {
 		r.Use(apiConfig.RateLimiter(60, time.Minute))
 		r.Get("/services", apiConfig.GetActiveServicesHandler)
 		r.Get("/services/{id}", apiConfig.GetServiceHandler)
+		r.Get("/categories/services", apiConfig.GetActiveServiceCategoriesHandler)
 		r.Get("/promotions", apiConfig.GetActivePromosHandler)
 		r.Get("/promotions/{id}", apiConfig.GetPromoHandler)
 		r.Get("/p/invoices/{id}", apiConfig.PublicGetInvoiceHandler)

@@ -285,13 +285,23 @@ type Service struct {
 	ID          uuid.UUID
 	Name        string
 	Description string
-	Category    string
 	IsActive    bool
 	IsFeatured  bool
 	Image       string
 	Tags        []string
 	CreatedAt   time.Time
 	MinPrice    string
+	CategoryID  uuid.NullUUID
+}
+
+type ServiceCategory struct {
+	ID          uuid.UUID
+	Name        string
+	Description string
+	Slug        string
+	CreatedAt   time.Time
+	Status      string
+	Icon        string
 }
 
 type User struct {

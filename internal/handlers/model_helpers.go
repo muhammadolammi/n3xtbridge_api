@@ -119,7 +119,6 @@ func dbServiceToService(dbService database.Service) Service {
 		ID:          dbService.ID,
 		Name:        dbService.Name,
 		Description: dbService.Description,
-		Category:    dbService.Category,
 		IsActive:    dbService.IsActive,
 		IsFeatured:  dbService.IsFeatured,
 		Image:       dbService.Image,
@@ -361,6 +360,26 @@ func dbPromosToPromos(dbPromos []database.Promotion) []Promotion {
 	res := make([]Promotion, 0, len(dbPromos))
 	for _, p := range dbPromos {
 		res = append(res, dbPromoToPromo(p))
+	}
+	return res
+}
+
+func dbServiceCategoryToServiceCategory(dbServiceCategory database.GetActiveServiceCategoriesRow) ServiceCategory {
+
+	return ServiceCategory{
+		ID:           dbServiceCategory.ID.String(),
+		Slug:         dbServiceCategory.Slug,
+		Name:         dbServiceCategory.Name,
+		Description:  dbServiceCategory.Description,
+		ServiceCount: int(dbServiceCategory.ServiceCount),
+		Icon:         dbServiceCategory.Icon,
+	}
+}
+
+func dbServiceCategoriesToServiceCategories(dbServiceCategories []database.GetActiveServiceCategoriesRow) []ServiceCategory {
+	res := make([]ServiceCategory, 0, len(dbServiceCategories))
+	for _, sc := range dbServiceCategories {
+		res = append(res, dbServiceCategoryToServiceCategory(sc))
 	}
 	return res
 }
