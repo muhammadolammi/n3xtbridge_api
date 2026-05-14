@@ -14,22 +14,25 @@ import (
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
-    email, password_hash, first_name, last_name, phone_number, address, role, country, state
+    email, password_hash, first_name, last_name, phone_number, address, role, country, state, is_email_verified, google_id, avatar_url
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7,$8,$9
-) RETURNING id, email, password_hash, first_name, last_name, phone_number, address, country, state, role, created_at, updated_at
+    $1, $2, $3, $4, $5, $6, $7,$8,$9,$10,$11,$12
+) RETURNING id, email, password_hash, first_name, last_name, phone_number, address, country, state, role, created_at, updated_at, is_email_verified, google_id, avatar_url
 `
 
 type CreateUserParams struct {
-	Email        string
-	PasswordHash string
-	FirstName    string
-	LastName     string
-	PhoneNumber  sql.NullString
-	Address      string
-	Role         string
-	Country      string
-	State        string
+	Email           string
+	PasswordHash    sql.NullString
+	FirstName       string
+	LastName        string
+	PhoneNumber     sql.NullString
+	Address         sql.NullString
+	Role            string
+	Country         sql.NullString
+	State           sql.NullString
+	IsEmailVerified sql.NullBool
+	GoogleID        sql.NullString
+	AvatarUrl       sql.NullString
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -43,6 +46,9 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.Role,
 		arg.Country,
 		arg.State,
+		arg.IsEmailVerified,
+		arg.GoogleID,
+		arg.AvatarUrl,
 	)
 	var i User
 	err := row.Scan(
@@ -58,12 +64,15 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsEmailVerified,
+		&i.GoogleID,
+		&i.AvatarUrl,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, first_name, last_name, phone_number, address, country, state, role, created_at, updated_at FROM users WHERE email = $1
+SELECT id, email, password_hash, first_name, last_name, phone_number, address, country, state, role, created_at, updated_at, is_email_verified, google_id, avatar_url FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -82,12 +91,15 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsEmailVerified,
+		&i.GoogleID,
+		&i.AvatarUrl,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, first_name, last_name, phone_number, address, country, state, role, created_at, updated_at FROM users WHERE id = $1
+SELECT id, email, password_hash, first_name, last_name, phone_number, address, country, state, role, created_at, updated_at, is_email_verified, google_id, avatar_url FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
@@ -106,6 +118,9 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsEmailVerified,
+		&i.GoogleID,
+		&i.AvatarUrl,
 	)
 	return i, err
 }
@@ -118,7 +133,7 @@ WHERE email = $2
 `
 
 type UpdatePasswordParams struct {
-	PasswordHash string
+	PasswordHash sql.NullString
 	Email        string
 }
 
@@ -127,11 +142,37 @@ func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) 
 	return err
 }
 
+const updateUserForOAuth = `-- name: UpdateUserForOAuth :exec
+UPDATE users
+SET
+    google_id = $2,
+    is_email_verified = $3,
+    avatar_url = $4
+WHERE id = $1
+`
+
+type UpdateUserForOAuthParams struct {
+	ID              uuid.UUID
+	GoogleID        sql.NullString
+	IsEmailVerified sql.NullBool
+	AvatarUrl       sql.NullString
+}
+
+func (q *Queries) UpdateUserForOAuth(ctx context.Context, arg UpdateUserForOAuthParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserForOAuth,
+		arg.ID,
+		arg.GoogleID,
+		arg.IsEmailVerified,
+		arg.AvatarUrl,
+	)
+	return err
+}
+
 const updateUserRole = `-- name: UpdateUserRole :one
 UPDATE users SET
     role = $2,
     updated_at = NOW()
-WHERE id = $1 RETURNING id, email, password_hash, first_name, last_name, phone_number, address, country, state, role, created_at, updated_at
+WHERE id = $1 RETURNING id, email, password_hash, first_name, last_name, phone_number, address, country, state, role, created_at, updated_at, is_email_verified, google_id, avatar_url
 `
 
 type UpdateUserRoleParams struct {
@@ -155,6 +196,9 @@ func (q *Queries) UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) 
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsEmailVerified,
+		&i.GoogleID,
+		&i.AvatarUrl,
 	)
 	return i, err
 }

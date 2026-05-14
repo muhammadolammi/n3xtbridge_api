@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"log"
-	"os"
 
 	"time"
 
@@ -52,11 +51,8 @@ func ConnectDB(ctx context.Context, cfg *handlers.Config) {
 		cfg.DBConn = db
 		cfg.DBQueries = database.New(db)
 		provider := auth.NewProvider(cfg.DBQueries)
-		env := os.Getenv("ENV")
-		isCloudRun := os.Getenv("K_SERVICE") // This is always present on Google Cloud Run
-		isProd := (env == "production" || env == "deployment" || isCloudRun != "")
-		cfg.IsProd = isProd
-		authService := goauth.NewAuthService(cfg.JwtSecret, "n3xtbridge", provider, isProd)
+
+		authService := goauth.NewAuthService(cfg.JwtSecret, "n3xtbridge", provider, cfg.IsProd)
 		cfg.AuthService = authService
 		log.Println("✅ Postgres connected")
 		return

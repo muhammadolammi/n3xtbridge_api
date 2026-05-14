@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -11,6 +12,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/gorilla/sessions"
+	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
+	"github.com/markbates/goth/providers/google"
 	"github.com/muhammadolammi/n3xtbridge_api/internal/handlers"
 	"github.com/muhammadolammi/n3xtbridge_api/internal/mailer"
 	payment "github.com/muhammadolammi/n3xtbridge_api/internal/payments"
@@ -18,10 +23,10 @@ import (
 )
 
 func buildConfig() handlers.Config {
-	envMode := os.Getenv("ENV")
-	if envMode == "" {
-		log.Fatal("cant start up with empty ENV, security risk")
-	}
+	env := os.Getenv("ENV")
+	isCloudRun := os.Getenv("K_SERVICE") // This is always present on Google Cloud Run
+	isProd := (env == "production" || env == "deployment" || isCloudRun != "")
+
 	dburl := os.Getenv("DB_URL")
 	if dburl == "" {
 		log.Println("Empty DB_URL in env")
@@ -39,6 +44,11 @@ func buildConfig() handlers.Config {
 	if paystackKey == "" {
 		log.Panic("Empty PAYSTACK_SECRET_KEY in env, server wont be able to make payment")
 
+	}
+
+	APIUrl := os.Getenv("API_URL")
+	if APIUrl == "" {
+		log.Panicln("API_URL is required to determine the base URL for the application")
 	}
 
 	// SMTP CONFIG
@@ -76,6 +86,8 @@ func buildConfig() handlers.Config {
 
 	return handlers.Config{
 		DBURL:        dburl,
+		IsProd:       isProd,
+		ApiUrl:       APIUrl,
 		ClientApiKey: clientApiKey,
 		Paystack:     payment.NewPaystackService(paystackKey),
 		EmailSender: mailer.NewMailer(mailer.NewMailerParams{
@@ -133,4 +145,35 @@ func loadRedisClient(cfg *handlers.Config) {
 	// client.FlushDB(context.Background())
 
 	cfg.RedisClient = client
+}
+
+func configureGoth(cfg *handlers.Config) {
+	key := os.Getenv("GOTHIC_KEY")
+	if key == "" {
+		log.Panicln("GOTHIC_KEY is required for authentication to work")
+	}
+
+	googleClientID := os.Getenv("GOOGLE_CLIENT_ID")
+	googleClientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
+	if googleClientID == "" || googleClientSecret == "" {
+		log.Panicln("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are required for Google authentication")
+	}
+	baseUrl := "http://localhost:8080"
+	if cfg.IsProd {
+		baseUrl = cfg.ApiUrl
+	}
+	goth.UseProviders(
+		google.New(googleClientID, googleClientSecret, baseUrl+"/auth/google/callback"),
+	)
+	store := sessions.NewCookieStore([]byte(key))
+	store.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 30,
+		HttpOnly: true,
+		Secure:   cfg.IsProd,
+		// Add this line - it helps with cross-site redirects
+		SameSite: http.SameSiteLaxMode,
+	}
+	gothic.Store = store
+
 }

@@ -305,16 +305,19 @@ type ServiceCategory struct {
 }
 
 type User struct {
-	ID           uuid.UUID
-	Email        string
-	PasswordHash string
-	FirstName    string
-	LastName     string
-	PhoneNumber  sql.NullString
-	Address      string
-	Country      string
-	State        string
-	Role         string
-	CreatedAt    sql.NullTime
-	UpdatedAt    sql.NullTime
+	ID              uuid.UUID
+	Email           string
+	PasswordHash    sql.NullString
+	FirstName       string
+	LastName        string
+	PhoneNumber     sql.NullString
+	Address         sql.NullString
+	Country         sql.NullString
+	State           sql.NullString
+	Role            string
+	CreatedAt       sql.NullTime
+	UpdatedAt       sql.NullTime
+	IsEmailVerified sql.NullBool
+	GoogleID        sql.NullString
+	AvatarUrl       sql.NullString
 }
