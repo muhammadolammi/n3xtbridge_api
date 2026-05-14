@@ -83,3 +83,8 @@ jobs:
             R2_SECRET_KEY=${{ secrets.R2_SECRET_KEY }}
             R2_ACCESS_KEY=${{ secrets.R2_ACCESS_KEY }}
             REDIS_URL=${{ secrets.REDIS_URL }}
+
+            GOTHIC_KEY=${{ secrets.GOTHIC_KEY }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            API_URL=${{ secrets.API_URL }}
