@@ -1,8 +1,8 @@
 -- name: CreateUser :one
 INSERT INTO users (
-    email, password_hash, first_name, last_name, phone_number, address, role, country, state
+    email, password_hash, first_name, last_name, phone_number, address, role, country, state, is_email_verified, google_id, avatar_url
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7,$8,$9
+    $1, $2, $3, $4, $5, $6, $7,$8,$9,$10,$11,$12
 ) RETURNING *;
 
 -- name: GetUserByEmail :one
@@ -24,6 +24,13 @@ SET
   password_hash = $1
 WHERE email = $2;
 
+-- name: UpdateUserForOAuth :exec
+UPDATE users
+SET
+    google_id = $2,
+    is_email_verified = $3,
+    avatar_url = $4
+WHERE id = $1;
 
 -- name: UserExists :one
 SELECT EXISTS (

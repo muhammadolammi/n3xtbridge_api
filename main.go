@@ -26,8 +26,11 @@ func main() {
 	// go infra.ConnectRabbit(ctx, &cfg)
 	go loadAWSConfig(&cfg, cfg.R2)
 	// go infra.ConnectPubSub(ctx, &cfg)
-	loadRedisClient(&cfg)
 	infra.ConnectDB(ctx, &cfg)
+
+	loadRedisClient(&cfg)
+	// configure goth
+	configureGoth(&cfg)
 
 	// Start your server in goroutine
 	go func() {

@@ -11,16 +11,18 @@ require (
 	github.com/go-chi/cors v1.2.2
 	github.com/go-redis/redis_rate/v10 v10.0.1
 	github.com/google/uuid v1.6.0
+	github.com/gorilla/sessions v1.4.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.11.2
+	github.com/markbates/goth v1.82.0
 	github.com/muhammadolammi/email v0.0.0-20210109023952-943e75fe5223
-	github.com/muhammadolammi/goauth v1.1.8
+	github.com/muhammadolammi/goauth v1.1.10
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/sqlc-dev/pqtype v0.3.0
-	golang.org/x/crypto v0.49.0
 )
 
 require (
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.9 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.22 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.22 // indirect
@@ -38,5 +40,13 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
+	github.com/gorilla/context v1.1.1 // indirect
+	github.com/gorilla/mux v1.6.2 // indirect
+	github.com/gorilla/securecookie v1.1.2 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
+	golang.org/x/crypto v0.49.0 // indirect
+	golang.org/x/oauth2 v0.27.0 // indirect
 )
+
+// replace github.com/muhammadolammi/goauth => ~/workspace/github.com/muhammadolammi/goauth
+// replace github.com/muhammadolammi/goauth => /home/muhammad/workspace/github.com/muhammadolammi/goauth

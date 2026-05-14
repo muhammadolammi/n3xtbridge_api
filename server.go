@@ -30,8 +30,13 @@ func server(apiConfig *handlers.Config) {
 	router.Use(middleware.RequestID, middleware.RealIP, middleware.Logger, cors.Handler(corsOptions), middleware.Recoverer)
 
 	// --- PUBLIC WEBHOOKS (Strict Rate Limit) ---
-	router.With(apiConfig.RateLimiter(5, 10*time.Minute)).Post("/api/webhooks/paystack", apiConfig.PaystackWebhookHandler)
-
+	// router.With(apiConfig.RateLimiter(5, 10*time.Minute)).Post("/api/webhooks/paystack", apiConfig.PaystackWebhookHandler)
+	router.Group(func(r chi.Router) {
+		r.Use(apiConfig.RateLimiter(5, 10*time.Minute))
+		r.Post("/api/webhooks/paystack", apiConfig.PaystackWebhookHandler)
+		r.Get("/auth/{provider}", apiConfig.BeginAuthHandler)
+		r.Get("/auth/{provider}/callback", apiConfig.GoogleAuthCallback)
+	})
 	// 2. DEFINE THE API ROUTE
 	protectedRoute := chi.NewRouter()
 	protectedRoute.Use(apiConfig.ClientAuth())
@@ -41,8 +46,9 @@ func server(apiConfig *handlers.Config) {
 
 	protectedRoute.Group(func(r chi.Router) {
 		r.Use(apiConfig.RateLimiter(5, 10*time.Minute))
-		r.Post("/auth/signup", apiConfig.SignupHandler)
+		r.Post("/auth/signup", apiConfig.AuthService.SignupHandler)
 		r.Post("/auth/signin", apiConfig.AuthService.LoginHandler)
+
 	})
 
 	// --- TIER: HIGH FREQUENCY AUTH (Refresh/Check) ---

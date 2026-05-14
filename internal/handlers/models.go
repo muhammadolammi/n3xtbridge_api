@@ -36,6 +36,7 @@ type Config struct {
 	// Redis
 	RedisClient *redis.Client
 	RedisURL    string
+	ApiUrl      string
 }
 type R2Config struct {
 	AccountID     string

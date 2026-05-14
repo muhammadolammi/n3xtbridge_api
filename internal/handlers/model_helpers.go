@@ -19,9 +19,9 @@ func dbUserToUser(dbUser database.User) User {
 		LastName:    dbUser.LastName,
 		Email:       dbUser.Email,
 		PhoneNumber: dbUser.PhoneNumber,
-		Address:     dbUser.Address,
-		Country:     dbUser.Country,
-		State:       dbUser.State,
+		Address:     dbUser.Address.String,
+		Country:     dbUser.Country.String,
+		State:       dbUser.State.String,
 		Role:        dbUser.Role,
 		CreatedAt:   dbUser.CreatedAt,
 	}
